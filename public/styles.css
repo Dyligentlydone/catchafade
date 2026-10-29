@@ -719,6 +719,40 @@ a { color: inherit; }
 .summary-row dt { color: var(--gray); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
 .summary-row dd { text-align: right; font-weight: 600; }
 
+.policy {
+  font-size: 12px;
+  color: var(--gray);
+  margin-top: 14px;
+  line-height: 1.5;
+}
+.otp-box {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.summary.dimmed { opacity: 0.45; }
+.booked { text-align: center; padding: 28px 0 8px; }
+.booked-check {
+  width: 56px; height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--red);
+  color: var(--cream);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.booked-title {
+  font-family: var(--font-display);
+  font-size: 34px;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+.booked .btn { margin-top: 14px; }
+
 .copy-link {
   background: none;
   border: none;

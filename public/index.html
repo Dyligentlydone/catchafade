@@ -169,10 +169,23 @@
 
         <!-- STEP 4: confirm -->
         <div class="panel" data-panel="4">
-          <h3 class="panel-title">Send it to Chris</h3>
+          <h3 class="panel-title">Confirm your spot</h3>
           <div class="summary" id="summary"></div>
-          <p class="hint">Hitting the button opens your messages app with this booking pre-typed. Just press send — Chris texts back to confirm.<br />
-          On a computer? <button type="button" class="copy-link" id="btn-copy">Copy the booking details</button> and text them to <span id="copy-phone">(555) 012-3456</span>.</p>
+          <p class="policy" id="policy-note"></p>
+          <div class="otp-box" id="otp-box" hidden>
+            <label class="field pref-time">
+              <span>Verification code</span>
+              <input type="text" id="f-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" />
+            </label>
+            <p class="hint">We texted a code to your number — enter it to finish booking.</p>
+          </div>
+          <div class="booked" id="booked" hidden>
+            <div class="booked-check">✓</div>
+            <p class="booked-title">You're on the books.</p>
+            <p class="hint">Chris will text you to confirm your appointment.</p>
+            <button type="button" class="btn btn-ghost" id="btn-again">Book another</button>
+          </div>
+          <p class="hint">Something not working? <button type="button" class="copy-link" id="btn-copy">Copy the booking details</button> and text them to <span id="copy-phone">(555) 012-3456</span>.</p>
         </div>
 
         <!-- controls -->

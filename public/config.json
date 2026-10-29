@@ -1,0 +1,50 @@
+{
+  "barberName": "Chris",
+  "shopName": "Catch a Fade Chris",
+  "phone": "+15550123456",
+  "phoneDisplay": "(555) 012-3456",
+  "location": "Colton, CA",
+  "serviceArea": "Inland Empire to Los Angeles",
+  "cities": [
+    "San Bernardino", "Santa Clarita", "West Hollywood", "Pomona",
+    "Huntington Beach", "Jurupa Valley", "Pico Rivera", "Los Angeles"
+  ],
+  "instagram": "catch.a.fade.chris",
+  "stats": [
+    { "num": "11,012", "label": "IG followers" },
+    { "num": "399", "label": "posts" },
+    { "num": "Colton, CA", "label": "home-based & mobile" },
+    { "num": "IE → LA", "label": "service area" }
+  ],
+  "work": [
+    { "url": "https://www.instagram.com/p/DfBfjwxFMKJ/", "badge": "Hero pick", "likes": "7.5K", "comments": 141, "note": "Cut for @n3onsingh · West Hollywood" },
+    { "url": "https://www.instagram.com/reel/DevpPD1pK-L/", "likes": "6.8K", "comments": 122 },
+    { "url": "https://www.instagram.com/reel/DefoG0_JVNv/", "likes": "5.4K", "comments": 138 },
+    { "url": "https://www.instagram.com/reel/Deu8Bcjvt6y/", "badge": "Most commented", "likes": "5.2K", "comments": 169, "note": "The slick-back everyone asked back for" },
+    { "url": "https://www.instagram.com/reel/De5zOnapHnL/", "likes": "1.9K", "comments": 24 },
+    { "url": "https://www.instagram.com/p/Deuc2RVJsws/", "likes": "1.9K", "comments": 38 }
+  ],
+  "hours": {
+    "0": null,
+    "1": { "open": 10, "close": 18 },
+    "2": { "open": 10, "close": 18 },
+    "3": { "open": 10, "close": 18 },
+    "4": { "open": 10, "close": 18 },
+    "5": { "open": 10, "close": 18 },
+    "6": { "open": 10, "close": 18 }
+  },
+  "slotMinutes": 30,
+  "daysAhead": 14,
+  "minLeadMinutes": 60,
+  "services": [
+    { "id": "full", "name": "Full Service", "price": 50, "mins": 60, "tag": "Book ahead",
+      "desc": "The works — cut, beard, eyebrows, goatee, mustache & design, all included." },
+    { "id": "walkin", "name": "Full Service · Walk-In", "price": 65, "mins": 60, "tag": "Walk-in", "bookable": false,
+      "desc": "Same-day walk-in full service. No appointment — first come, first served." },
+    { "id": "afterhours", "name": "After Hours", "price": 100, "mins": 60, "tag": "By request", "request": true,
+      "desc": "Outside regular hours, by appointment only. Text Chris to lock in a time." },
+    { "id": "housecall", "name": "Housecall", "price": 100, "mins": 60, "tag": "By request", "request": true, "needsAddress": true, "priceNote": " + gas",
+      "desc": "Chris pulls up to you — $100 per cut plus gas." }
+  ],
+  "noShowPolicy": { "fee": "$25", "window": "4 hours" }
+}

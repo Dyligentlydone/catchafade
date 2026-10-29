@@ -1,0 +1,19 @@
+{
+  "name": "catchafade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Catch a Fade Chris — booking site with card-on-file",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "stripe": "^17.5.0",
+    "twilio": "^5.4.0"
+  }
+}

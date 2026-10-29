@@ -1,81 +1,19 @@
 /* ============================================================
-   CATCH A FADE CHRIS — site config + booking logic
+   CATCH A FADE CHRIS — site + booking logic
    ------------------------------------------------------------
-   ★ EDIT THIS BLOCK with Chris's real info — everything on the
-     site (prices, hours, phone, booking texts) updates from here.
+   All business info lives in /config.json — the server reads the
+   same file, so it stays the single source of truth (and later,
+   it's what an admin panel edits).
    ============================================================ */
-const CONFIG = {
-  barberName: "Chris",
-  shopName: "Catch a Fade Chris",
-
-  // Phone that receives booking texts (SMS). Digits only, with country code.
-  phone: "+15550123456",
-  phoneDisplay: "(555) 012-3456",
-
-  // Home-based barber — never publish his address. Area + city chips only.
-  location: "Colton, CA",
-  serviceArea: "Inland Empire to Los Angeles",
-  cities: [
-    "San Bernardino", "Santa Clarita", "West Hollywood", "Pomona",
-    "Huntington Beach", "Jurupa Valley", "Pico Rivera", "Los Angeles",
-  ],
-  instagram: "catch.a.fade.chris",
-
-  stats: [
-    { num: "11,012", label: "IG followers" },
-    { num: "399",    label: "posts" },
-    { num: "Colton, CA", label: "home-based & mobile" },
-    { num: "IE → LA", label: "service area" },
-  ],
-
-  // Gallery — Instagram /embeds, biggest first. Video-friendly.
-  work: [
-    { url: "https://www.instagram.com/p/DfBfjwxFMKJ/",  badge: "Hero pick",      likes: "7.5K", comments: 141, note: "Cut for @n3onsingh · West Hollywood" },
-    { url: "https://www.instagram.com/reel/DevpPD1pK-L/", likes: "6.8K", comments: 122 },
-    { url: "https://www.instagram.com/reel/DefoG0_JVNv/", likes: "5.4K", comments: 138 },
-    { url: "https://www.instagram.com/reel/Deu8Bcjvt6y/", badge: "Most commented", likes: "5.2K", comments: 169, note: "The slick-back everyone asked back for" },
-    { url: "https://www.instagram.com/reel/De5zOnapHnL/", likes: "1.9K", comments: 24 },
-    { url: "https://www.instagram.com/p/Deuc2RVJsws/",    likes: "1.9K", comments: 38 },
-  ],
-
-
-
-  // Hours by weekday (0 = Sunday). null = closed.
-  hours: {
-    0: null,                          // Sunday — closed
-    1: { open: 10, close: 18 },       // Mon–Sat 10a–6p
-    2: { open: 10, close: 18 },
-    3: { open: 10, close: 18 },
-    4: { open: 10, close: 18 },
-    5: { open: 10, close: 18 },
-    6: { open: 10, close: 18 },
-  },
-
-  slotMinutes: 30,        // time slots every 30 min
-  daysAhead: 14,          // how far out clients can book
-  minLeadMinutes: 60,     // can't book a slot starting within the hour
-
-  // bookable:false → shown in the menu but not in the booking picker
-  // request:true   → client picks a day + types a preferred time (no fixed slots)
-  // needsAddress   → asks for the client's address in step 3
-  services: [
-    { id: "full",       name: "Full Service",           price: 50,  mins: 60, tag: "Book ahead",
-      desc: "The works — cut, beard, eyebrows, goatee, mustache & design, all included." },
-    { id: "walkin",     name: "Full Service · Walk-In", price: 65,  mins: 60, tag: "Walk-in", bookable: false,
-      desc: "Same-day walk-in full service. No appointment — first come, first served." },
-    { id: "afterhours", name: "After Hours",            price: 100, mins: 60, tag: "By request", request: true,
-      desc: "Outside regular hours, by appointment only. Text Chris to lock in a time." },
-    { id: "housecall",  name: "Housecall",              price: 100, mins: 60, tag: "By request", request: true, needsAddress: true, priceNote: " + gas",
-      desc: "Chris pulls up to you — $100 per cut plus gas." },
-  ],
-};
-/* ================== end of editable config ================== */
-
+let CONFIG = null;
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 
-const state = { step: 1, service: null, date: null, time: null, timeText: "" };
+const state = {
+  step: 1, service: null, date: null, time: null, timeText: "",
+  bookingId: null, otpShown: false,
+};
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DOW_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -99,9 +37,13 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(t._to);
-  t._to = setTimeout(() => t.classList.remove("show"), 2600);
+  t._to = setTimeout(() => t.classList.remove("show"), 3200);
 }
 function serviceById(id) { return CONFIG.services.find(s => s.id === id); }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 
 /* ---------- render: services section ---------- */
@@ -133,7 +75,6 @@ function renderServices() {
 /* ---------- render: hours / contact / chips ---------- */
 function renderInfo() {
   const today = new Date().getDay();
-  // order the list starting Monday
   const order = [1, 2, 3, 4, 5, 6, 0];
   $("#hours-list").innerHTML = order.map(d => {
     const h = CONFIG.hours[d];
@@ -159,10 +100,14 @@ function renderInfo() {
     : openDays.map(d => DOW[d]).join(" · "));
   const walkin = CONFIG.services.find(s => s.bookable === false);
   if (walkin) $("#chip-walkin").textContent = `Walk-ins welcome · $${walkin.price}`;
+  $("#policy-note").textContent =
+    `A card on file is required to book — it's never charged unless you no-show ` +
+    `or cancel within ${CONFIG.noShowPolicy.window} (${CONFIG.noShowPolicy.fee} fee). ` +
+    `Cards handled securely by Stripe.`;
 }
 
 
-/* ---------- render: stats bar / work gallery / clientele ---------- */
+/* ---------- render: stats bar / work gallery ---------- */
 function renderStats() {
   $("#stats-bar").innerHTML = CONFIG.stats.map(s => `
     <div class="stat"><b>${s.num}</b><span>${s.label}</span></div>`).join("");
@@ -182,6 +127,7 @@ function renderWork() {
       </figcaption>
     </figure>`).join("");
 }
+
 
 /* ---------- booking: step 1 — service picker ---------- */
 function renderServicePicker() {
@@ -279,65 +225,152 @@ function renderTimes(day) {
 }
 
 
-/* ---------- booking: step 4 — summary + SMS ---------- */
-function renderSummary() {
+/* ---------- booking: step 4 — summary + submit ---------- */
+function bookingPayload() {
   const svc = serviceById(state.service);
   const d = new Date(state.date);
-  const when = svc.request
-    ? `${fmtDateShort(d)} · ${state.timeText.trim()} (requested)`
-    : `${fmtDateShort(d)} · ${fmtTime(Math.floor(state.time / 60), state.time % 60)}`;
-  const notes = $("#f-notes").value.trim();
-  const addr = $("#f-addr")?.value.trim();
+  return {
+    name: $("#f-name").value.trim(),
+    phone: $("#f-phone").value.trim(),
+    serviceId: svc.id,
+    date: fmtDateShort(d),
+    time: svc.request
+      ? state.timeText.trim() + " (requested)"
+      : fmtTime(Math.floor(state.time / 60), state.time % 60),
+    notes: $("#f-notes").value.trim(),
+    address: $("#f-addr")?.value.trim() || "",
+  };
+}
 
+function renderSummary() {
+  const svc = serviceById(state.service);
+  const p = bookingPayload();
   $("#summary").innerHTML = `
     <dl>
       <div class="summary-row"><dt>Service</dt><dd>${svc.name} — $${svc.price}${svc.priceNote || ""}</dd></div>
-      <div class="summary-row"><dt>When</dt><dd>${when}</dd></div>
-      <div class="summary-row"><dt>Name</dt><dd>${escapeHtml($("#f-name").value.trim())}</dd></div>
-      <div class="summary-row"><dt>Phone</dt><dd>${escapeHtml($("#f-phone").value.trim())}</dd></div>
-      ${addr ? `<div class="summary-row"><dt>Address</dt><dd>${escapeHtml(addr)}</dd></div>` : ""}
-      ${notes ? `<div class="summary-row"><dt>Notes</dt><dd>${escapeHtml(notes)}</dd></div>` : ""}
+      <div class="summary-row"><dt>When</dt><dd>${p.date} · ${p.time}</dd></div>
+      <div class="summary-row"><dt>Name</dt><dd>${escapeHtml(p.name)}</dd></div>
+      <div class="summary-row"><dt>Phone</dt><dd>${escapeHtml(p.phone)}</dd></div>
+      ${p.address ? `<div class="summary-row"><dt>Address</dt><dd>${escapeHtml(p.address)}</dd></div>` : ""}
+      ${p.notes ? `<div class="summary-row"><dt>Notes</dt><dd>${escapeHtml(p.notes)}</dd></div>` : ""}
     </dl>`;
 }
 
 function bookingMessage() {
   const svc = serviceById(state.service);
-  const d = new Date(state.date);
-  const when = svc.request
-    ? `${fmtDateShort(d)} at ${state.timeText.trim()} (requested)`
-    : `${fmtDateShort(d)} at ${fmtTime(Math.floor(state.time / 60), state.time % 60)}`;
-  const notes = $("#f-notes").value.trim();
-  const addr = $("#f-addr")?.value.trim();
+  const p = bookingPayload();
   return [
     `Booking request — ${CONFIG.shopName}`,
-    `Name: ${$("#f-name").value.trim()}`,
-    `Phone: ${$("#f-phone").value.trim()}`,
+    `Name: ${p.name}`,
+    `Phone: ${p.phone}`,
     `Service: ${svc.name} ($${svc.price}${svc.priceNote || ""}, ~${svc.mins} min)`,
-    `When: ${when}`,
-    addr ? `Address: ${addr}` : null,
-    notes ? `Notes: ${notes}` : null,
+    `When: ${p.date} at ${p.time}`,
+    p.address ? `Address: ${p.address}` : null,
+    p.notes ? `Notes: ${p.notes}` : null,
   ].filter(Boolean).join("\n");
 }
 
-function sendBookingText() {
-  // sms: deep link — "?&body=" keeps both iOS and Android happy
-  const url = `sms:${CONFIG.phone}?&body=${encodeURIComponent(bookingMessage())}`;
-  window.location.href = url;
-  toast("Opening your messages — just press send.");
+function setLoading(on) {
+  const btn = $("#btn-next");
+  btn.disabled = on;
+  btn.textContent = on ? "Working…" : (state.otpShown ? "Verify & Book" : "Confirm Booking");
 }
 
-$("#btn-copy").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(bookingMessage());
-    toast("Booking details copied — paste them in a text to Chris.");
-  } catch {
-    toast("Couldn't copy — take a screenshot of the summary instead.");
-  }
-});
+function showOtp(devCode) {
+  state.otpShown = true;
+  $("#otp-box").hidden = false;
+  $("#summary").classList.add("dimmed");
+  const btn = $("#btn-next");
+  btn.textContent = "Verify & Book";
+  $("#f-code").focus();
+  toast(devCode
+    ? `Dev mode — your code is ${devCode}`
+    : "We texted you a code — enter it to finish.");
+}
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function showBooked() {
+  $("#summary").hidden = true;
+  $("#otp-box").hidden = true;
+  $("#policy-note").hidden = true;
+  $("#booked").hidden = false;
+  $(".book-controls").style.display = "none";
+}
+
+function resetBooking() {
+  Object.assign(state, { step: 1, service: null, date: null, time: null,
+    timeText: "", bookingId: null, otpShown: false });
+  $$("#service-picker .pick").forEach(b => b.classList.remove("is-selected"));
+  $("#summary").hidden = false;
+  $("#summary").classList.remove("dimmed");
+  $("#policy-note").hidden = false;
+  $("#booked").hidden = true;
+  $(".book-controls").style.display = "";
+  $("#f-notes").value = "";
+  $("#f-addr").value = "";
+  renderDates();
+  $("#time-grid").innerHTML = `<p class="hint">Pick a day first.</p>`;
+  goTo(1);
+}
+
+// Fallback when the booking API is unreachable — old text-it-yourself flow
+function fallbackSmsBook() {
+  const url = `sms:${CONFIG.phone}?&body=${encodeURIComponent(bookingMessage())}`;
+  window.location.href = url;
+  toast("Couldn't reach the booking system — sending as a text instead.");
+}
+
+async function submitBooking() {
+  setLoading(true);
+  try {
+    const r = await fetch("/api/booking/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bookingPayload()),
+    });
+    const data = await r.json().catch(() => ({}));
+    setLoading(false);
+    if (!r.ok) {
+      if (r.status === 503) { fallbackSmsBook(); return; }
+      toast(data.error || "Something went wrong — try again.");
+      return;
+    }
+    if (data.status === "checkout") {
+      toast("Opening secure card setup — your booking continues right after.");
+      location.href = data.url;
+    } else if (data.status === "otp_required") {
+      state.bookingId = data.bookingId;
+      showOtp(data.devCode);
+    } else {
+      fallbackSmsBook();
+    }
+  } catch {
+    setLoading(false);
+    fallbackSmsBook();
+  }
+}
+
+async function verifyCode() {
+  const code = $("#f-code").value.trim();
+  if (code.length < 4) { toast("Enter the 6-digit code from the text."); return; }
+  setLoading(true);
+  try {
+    const r = await fetch("/api/booking/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId: state.bookingId, code }),
+    });
+    const data = await r.json().catch(() => ({}));
+    setLoading(false);
+    if (!r.ok) {
+      toast(data.error || "Couldn't verify — try again.");
+      if (r.status === 410) { state.otpShown = false; $("#otp-box").hidden = true; $("#summary").classList.remove("dimmed"); $("#btn-next").textContent = "Confirm Booking"; }
+      return;
+    }
+    showBooked();
+  } catch {
+    setLoading(false);
+    toast("Couldn't reach the booking system — try again.");
+  }
 }
 
 
@@ -351,7 +384,7 @@ function goTo(step) {
     s.classList.toggle("is-done", n < step);
   });
   $("#btn-back").disabled = step === 1;
-  $("#btn-next").textContent = step === 4 ? "Text Chris to Book" : "Continue";
+  $("#btn-next").textContent = step === 4 ? "Confirm Booking" : "Continue";
   if (step === 2 && state.date) renderTimes(new Date(state.date));
   if (step === 3) {
     $("#f-addr-wrap").hidden = !serviceById(state.service)?.needsAddress;
@@ -386,22 +419,6 @@ function validateStep() {
   return true;
 }
 
-$("#btn-next").addEventListener("click", () => {
-  if (!validateStep()) return;
-  if (state.step < 4) goTo(state.step + 1);
-  else sendBookingText();
-});
-$("#btn-back").addEventListener("click", () => {
-  if (state.step > 1) goTo(state.step - 1);
-});
-["f-name", "f-phone", "f-addr"].forEach(id => {
-  $("#" + id).addEventListener("input", e => e.target.classList.remove("is-error"));
-});
-// re-render summary live if fields change on step 4
-$$(".field input").forEach(i => i.addEventListener("input", () => {
-  if (state.step === 4) renderSummary();
-}));
-
 
 /* ---------- chrome: nav, reveal, misc ---------- */
 const nav = $("#nav");
@@ -420,11 +437,63 @@ function observeReveals() {
 $("#year").textContent = new Date().getFullYear();
 
 
+/* ---------- events ---------- */
+$("#btn-next").addEventListener("click", () => {
+  if (state.step === 4) {
+    state.otpShown ? verifyCode() : submitBooking();
+    return;
+  }
+  if (!validateStep()) return;
+  goTo(state.step + 1);
+});
+$("#btn-back").addEventListener("click", () => {
+  if (state.step > 1) goTo(state.step - 1);
+});
+$("#btn-again").addEventListener("click", resetBooking);
+$("#btn-copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(bookingMessage());
+    toast("Booking details copied — paste them in a text to Chris.");
+  } catch {
+    toast("Couldn't copy — take a screenshot of the summary instead.");
+  }
+});
+["f-name", "f-phone", "f-addr", "f-code"].forEach(id => {
+  $("#" + id).addEventListener("input", e => e.target.classList.remove("is-error"));
+});
+// re-render summary live if fields change on step 4
+$$(".field input").forEach(i => i.addEventListener("input", () => {
+  if (state.step === 4) renderSummary();
+}));
+
+
+/* ---------- landing back from Stripe ---------- */
+function handleReturnParams() {
+  const p = new URLSearchParams(location.search);
+  const b = p.get("booking");
+  if (!b) return;
+  history.replaceState(null, "", location.pathname);
+  if (b === "card-saved") {
+    toast("Card saved ✓ You're booked — Chris will text you to confirm.");
+  } else if (b === "cancelled") {
+    toast("Card setup was cancelled — your booking isn't confirmed yet.");
+    document.getElementById("book").scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+
 /* ---------- boot ---------- */
-renderServices();
-renderInfo();
-renderStats();
-renderWork();
-renderServicePicker();
-renderDates();
-observeReveals();
+fetch("config.json")
+  .then(r => r.json())
+  .then(cfg => {
+    CONFIG = cfg;
+    renderServices();
+    renderInfo();
+    renderStats();
+    renderWork();
+    renderServicePicker();
+    renderDates();
+    observeReveals();
+    handleReturnParams();
+  })
+  .catch(() => toast("Site failed to load — refresh the page."));
