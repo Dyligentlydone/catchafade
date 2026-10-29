@@ -747,6 +747,9 @@ a { color: inherit; }
   padding-bottom: 14px;
   scroll-snap-type: x proximity;
   scrollbar-width: thin;
+  /* faded edges hint that the row scrolls */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
 }
 .work-card {
   flex: 0 0 320px;

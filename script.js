@@ -122,7 +122,10 @@ function renderServices() {
     </article>`).join("");
 
   $$("[data-book-service]").forEach(a => {
-    a.addEventListener("click", () => selectService(a.dataset.bookService));
+    a.addEventListener("click", () => {
+      selectService(a.dataset.bookService);
+      if (state.step !== 1) goTo(1);
+    });
   });
 }
 
