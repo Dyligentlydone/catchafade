@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catch a Fade Chris — Book a Cut</title>
+  <meta name="description" content="Catch a Fade Chris — clean cuts, sharp fades. Book directly, no app, no signup." />
+  <link rel="icon" type="image/jpeg" href="IMG_2543.JPEG" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <header class="nav" id="nav">
+    <a class="nav-brand" href="#top">
+      <img src="IMG_2543.JPEG" alt="Catch a Fade Chris logo" class="nav-logo" />
+      <span class="nav-name">Catch a Fade <em>Chris</em></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#services">Services</a>
+      <a href="#work">Work</a>
+      <a href="#about">Story</a>
+      <a href="#visit">Visit</a>
+      <a href="#book" class="nav-cta">Book a Cut</a>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-pole" aria-hidden="true">
+          <span class="pole-cap top"></span>
+          <span class="pole-body"><span class="pole-stripes"></span></span>
+          <span class="pole-cap bottom"></span>
+        </div>
+        <img src="IMG_2543.JPEG" alt="Catch a Fade Chris" class="hero-logo" />
+        <div class="hero-pole" aria-hidden="true">
+          <span class="pole-cap top"></span>
+          <span class="pole-body"><span class="pole-stripes"></span></span>
+          <span class="pole-cap bottom"></span>
+        </div>
+      </div>
+      <p class="hero-eyebrow">Home-based &amp; mobile barber · Colton, CA</p>
+      <h1 class="hero-title">Catch a Fade.</h1>
+      <p class="hero-tagline">&ldquo;The cut that gets you butt.<br />The fade that gets you laid.&rdquo;</p>
+      <div class="hero-actions">
+        <a href="#book" class="btn btn-red">Book Now</a>
+        <a href="#work" class="btn btn-ghost">See the Work</a>
+      </div>
+      <div class="hero-chips">
+        <span class="chip" id="chip-location">Colton, CA</span>
+        <span class="chip" id="chip-hours">Mon–Sat</span>
+        <span class="chip" id="chip-walkin">Walk-ins welcome</span>
+      </div>
+    </section>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar reveal" id="stats-bar"></div>
+
+    <!-- MARQUEE -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Fades</span><i>✦</i><span>Beards</span><i>✦</i><span>Designs</span><i>✦</i><span>Long Hair</span><i>✦</i><span>Transformations</span><i>✦</i><span>Walk-Ins $65</span><i>✦</i><span>Housecalls</span><i>✦</i>
+        <span>Fades</span><i>✦</i><span>Beards</span><i>✦</i><span>Designs</span><i>✦</i><span>Long Hair</span><i>✦</i><span>Transformations</span><i>✦</i><span>Walk-Ins $65</span><i>✦</i><span>Housecalls</span><i>✦</i>
+      </div>
+    </div>
+
+    <!-- SERVICES -->
+    <section class="section" id="services">
+      <div class="section-head reveal">
+        <p class="kicker">The Menu</p>
+        <h2>Services &amp; Pricing</h2>
+      </div>
+      <div class="services-grid" id="services-grid"><!-- rendered by JS --></div>
+    </section>
+
+    <!-- BOOKING -->
+    <section class="section book-section" id="book">
+      <div class="section-head reveal">
+        <p class="kicker">No App Needed</p>
+        <h2>Book Your Spot</h2>
+        <p class="section-sub">Pick a service, pick a time, drop your name — it texts Chris directly. He confirms, you show up. Same-day walk-ins $65.</p>
+      </div>
+
+      <div class="book-card reveal">
+        <ol class="steps" id="steps">
+          <li class="step is-active" data-step-dot="1"><b>01</b><span>Service</span></li>
+          <li class="step" data-step-dot="2"><b>02</b><span>Date &amp; Time</span></li>
+          <li class="step" data-step-dot="3"><b>03</b><span>Your Info</span></li>
+          <li class="step" data-step-dot="4"><b>04</b><span>Confirm</span></li>
+        </ol>
+
+        <!-- STEP 1: service -->
+        <div class="panel is-active" data-panel="1">
+          <h3 class="panel-title">What are we doing?</h3>
+          <div class="pick-grid" id="service-picker"></div>
+        </div>
+
+        <!-- STEP 2: date/time -->
+        <div class="panel" data-panel="2">
+          <h3 class="panel-title">When works for you?</h3>
+          <p class="panel-label">Day</p>
+          <div class="date-strip" id="date-strip"></div>
+          <p class="panel-label">Time</p>
+          <div class="time-grid" id="time-grid"><p class="hint">Pick a day first.</p></div>
+        </div>
+
+        <!-- STEP 3: info -->
+        <div class="panel" data-panel="3">
+          <h3 class="panel-title">Who's in the chair?</h3>
+          <div class="form-grid">
+            <label class="field">
+              <span>Name *</span>
+              <input type="text" id="f-name" placeholder="Your name" autocomplete="name" />
+            </label>
+            <label class="field">
+              <span>Phone *</span>
+              <input type="tel" id="f-phone" placeholder="(555) 000-0000" autocomplete="tel" />
+            </label>
+            <label class="field field-full" id="f-addr-wrap" hidden>
+              <span>Housecall address *</span>
+              <input type="text" id="f-addr" placeholder="Street, city, ZIP" autocomplete="street-address" />
+            </label>
+            <label class="field field-full">
+              <span>Notes <small>(optional)</small></span>
+              <input type="text" id="f-notes" placeholder="Reference pic, specific requests, first visit…" />
+            </label>
+          </div>
+        </div>
+
+        <!-- STEP 4: confirm -->
+        <div class="panel" data-panel="4">
+          <h3 class="panel-title">Send it to Chris</h3>
+          <div class="summary" id="summary"></div>
+          <p class="hint">Hitting the button opens your messages app with this booking pre-typed. Just press send — Chris texts back to confirm.<br />
+          On a computer? <button type="button" class="copy-link" id="btn-copy">Copy the booking details</button> and text them to <span id="copy-phone">(555) 012-3456</span>.</p>
+        </div>
+
+        <!-- controls -->
+        <div class="book-controls">
+          <button class="btn btn-ghost" id="btn-back" type="button" disabled>Back</button>
+          <button class="btn btn-red" id="btn-next" type="button">Continue</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECENT WORK -->
+    <section class="section" id="work">
+      <div class="section-head reveal">
+        <p class="kicker">Recent Work</p>
+        <h2>Proof, Not Promises</h2>
+        <p class="section-sub">Straight off the feed — mostly video. Tap to watch.</p>
+      </div>
+      <div class="work-scroll reveal" id="work-scroll"></div>
+      <div class="center reveal">
+        <a class="btn btn-ghost" id="ig-more" href="https://www.instagram.com/catch.a.fade.chris" target="_blank" rel="noopener">See more on Instagram</a>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="section about" id="about">
+      <div class="about-inner">
+        <div class="about-text reveal">
+          <p class="kicker">The Story</p>
+          <h2>Built from<br />a single chair.</h2>
+          <p>2019: homeless. August 2022: first cut on his brother, in an apartment in Grand Terrace. Then a home shop, a night-market stall — and now, Catch A Fade Chris.</p>
+          <p>The promise is consistency, quality, and dependability — on every cut. And it's not just fades: trims, sections, layers, texture, and full transformations, built on real knowledge of headshapes, sectioning, and overdirection. Not just chopping away.</p>
+          <a href="#book" class="btn btn-red">Book With Chris</a>
+        </div>
+        <div class="about-reel reveal">
+          <div class="reel-frame">
+            <iframe src="https://www.instagram.com/reel/De3SuOTpf87/embed" loading="lazy" scrolling="no" title="Catch a Fade Chris — origin story"></iframe>
+          </div>
+          <p class="reel-credit">The origin story — <a href="https://www.instagram.com/reel/De3SuOTpf87/" target="_blank" rel="noopener">watch on Instagram</a> · edited by @dylwill</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISIT -->
+    <section class="section" id="visit">
+      <div class="section-head reveal">
+        <p class="kicker">Pull Up</p>
+        <h2>Hours &amp; Location</h2>
+      </div>
+      <div class="visit-grid reveal">
+        <div class="visit-card">
+          <h3>Hours</h3>
+          <ul class="hours-list" id="hours-list"></ul>
+        </div>
+        <div class="visit-card">
+          <h3>Service Area</h3>
+          <p class="visit-address" id="visit-area">Colton-based · Inland Empire to Los Angeles</p>
+          <div class="city-chips" id="city-chips"></div>
+        </div>
+        <div class="visit-card">
+          <h3>Book &amp; Follow</h3>
+          <p class="visit-address"><a id="phone-link" href="#" class="contact-link">Text (555) 012-3456</a></p>
+          <p class="visit-address"><a id="ig-link" href="#" target="_blank" rel="noopener" class="contact-link">@catch.a.fade.chris</a></p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <img src="IMG_2543.JPEG" alt="" class="footer-logo" />
+    <p class="footer-name">Catch a Fade Chris</p>
+    <p class="footer-tag">Sit down. Level up.</p>
+    <p class="footer-small">© <span id="year"></span> Catch a Fade Chris · Book by text — no app required</p>
+  </footer>
+
+  <!-- toast -->
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
