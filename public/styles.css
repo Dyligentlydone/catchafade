@@ -982,7 +982,21 @@ a { color: inherit; }
   .nav { padding: 12px 16px; }
   .nav-links a:not(.nav-cta) { display: none; }
   .nav-name { font-size: 18px; }
-  .hero-pole { display: none; }
+  /* shrink the barber poles so they fit beside the logo */
+  .hero-inner { gap: 14px; }
+  .hero-pole { width: 18px; }
+  .pole-body {
+    height: 88px;
+    margin: 0 2px;
+    border-radius: 9px;
+  }
+  .pole-cap { height: 11px; }
+  .pole-cap::before { width: 8px; height: 8px; }
+  .pole-cap.top { border-radius: 6px 6px 3px 3px; }
+  .pole-cap.top::before { top: -7px; }
+  .pole-cap.bottom { border-radius: 3px 3px 6px 6px; }
+  .pole-cap.bottom::before { bottom: -7px; }
+  .hero-logo { width: clamp(150px, 46vw, 200px); }
   .section { padding: 80px 18px; }
   .book-card { padding: 26px 18px 20px; }
   .step span { display: none; }
