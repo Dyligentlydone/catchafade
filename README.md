@@ -17,7 +17,15 @@ npm install
 npm start          # http://localhost:3000
 ```
 
-Without env keys the site works but bookings fall back to plain SMS.
+Without env keys the site works — bookings fall back to client-sent SMS and
+are still recorded for the admin.
+
+## Admin dashboard
+
+`/admin` — password = `ADMIN_KEY` env var. Shows upcoming bookings; Chris can
+charge a client's saved card (full/custom amount), fire the no-show fee, or
+cancel. Bookings persist in `DATA_DIR/bookings.json` — attach a Railway Volume
+at `/data` and set `DATA_DIR=/data` so they survive redeploys.
 
 ## Deploy (Railway)
 

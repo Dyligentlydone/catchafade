@@ -44,6 +44,25 @@ const PENDING_TTL = 30 * 60 * 1000;
 const OTP_TTL = 10 * 60 * 1000;
 const OTP_MAX_TRIES = 5;
 
+/* ---------- bookings store ----------
+   JSON file so the admin dashboard has something to show.
+   On Railway: add a Volume mounted at /data and set DATA_DIR=/data —
+   before that it still works, just resets on redeploy. */
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
+const BOOKINGS_FILE = path.join(DATA_DIR, "bookings.json");
+const bookings = new Map(); // id -> booking
+try {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  for (const b of JSON.parse(fs.readFileSync(BOOKINGS_FILE, "utf8"))) {
+    bookings.set(b.id, b);
+  }
+} catch { /* first run or unwritable — memory only */ }
+function saveBookings() {
+  try {
+    fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([...bookings.values()], null, 2));
+  } catch (e) { console.error("bookings not persisted:", e.message); }
+}
+
 
 /* ---------- helpers ---------- */
 function toE164(p) {
@@ -117,6 +136,9 @@ app.post("/api/stripe/webhook",
       const b = id && pendings.get(id);
       if (b) {
         pendings.delete(id);
+        b.cardSaved = true;
+        bookings.set(id, b);
+        saveBookings();
         await confirmBooking(b, "new client · card saved ✓");
       }
     }
@@ -135,8 +157,6 @@ app.get("/api/health", (req, res) => {
 });
 
 app.post("/api/booking/start", async (req, res) => {
-  if (!stripe) return res.status(503).json({ error: "payments not configured" });
-
   const { name, phone, serviceId, date, time, notes, address } = req.body || {};
   const svc = CONFIG.services.find(s => s.id === serviceId);
   const phoneE164 = toE164(phone);
@@ -145,7 +165,17 @@ app.post("/api/booking/start", async (req, res) => {
   }
 
   const id = newId();
-  const booking = { id, name, phone: phoneE164, svc, date, time, notes, address };
+  const booking = {
+    id, name, phone: phoneE164, svc, date, time, notes, address,
+    status: "booked", createdAt: new Date().toISOString(),
+  };
+
+  // no Stripe keys yet — record it for the admin anyway, client texts Chris
+  if (!stripe) {
+    bookings.set(id, booking);
+    saveBookings();
+    return res.json({ status: "sms_only", bookingId: id });
+  }
 
   try {
     const customer = await findOrCreateCustomer(phoneE164, name);
@@ -157,6 +187,8 @@ app.post("/api/booking/start", async (req, res) => {
     // booking text, which self-verifies: it comes from their real number.
     if (await hasSavedCard(customer.id)) {
       pendings.delete(id);
+      bookings.set(id, booking);
+      saveBookings();
       return res.json({ status: "has_card" });
     }
 
@@ -172,9 +204,9 @@ app.post("/api/booking/start", async (req, res) => {
       custom_text: {
         submit: {
           message:
-            `Your card is saved for no-show protection — it's only charged ` +
-            `${CONFIG.noShowPolicy.fee} if you miss your appointment or cancel ` +
-            `within ${CONFIG.noShowPolicy.window}.`,
+            `Your card is saved on file for your bookings — it's charged for ` +
+            `your service after your cut, or ${CONFIG.noShowPolicy.fee} if you ` +
+            `no-show or cancel within ${CONFIG.noShowPolicy.window}.`,
         },
       },
     });
@@ -208,6 +240,81 @@ app.post("/api/booking/verify", async (req, res) => {
   res.json({ ok: true });
 });
 
+
+/* ---------- admin ----------
+   Chris's charge dashboard at /admin — one password (ADMIN_KEY env),
+   sent as x-admin-key on every request from the admin page. */
+function adminAuth(req, res, next) {
+  if (!process.env.ADMIN_KEY) {
+    return res.status(503).json({ error: "admin not configured — set ADMIN_KEY" });
+  }
+  if (req.headers["x-admin-key"] !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: "wrong password" });
+  }
+  next();
+}
+
+app.get("/admin", (req, res) =>
+  res.sendFile(path.join(__dirname, "admin", "index.html")));
+
+app.get("/api/admin/bookings", adminAuth, (req, res) => {
+  res.json({
+    bookings: [...bookings.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    noShowFee: CONFIG.noShowPolicy.fee,
+    stripe: !!stripe,
+  });
+});
+
+app.post("/api/admin/charge", adminAuth, async (req, res) => {
+  const { bookingId, amount } = req.body || {};
+  const b = bookings.get(bookingId);
+  if (!b) return res.status(404).json({ error: "booking not found" });
+  const cents = Math.round(Number(amount) * 100);
+  if (!cents || cents < 50) return res.status(400).json({ error: "invalid amount" });
+  if (!stripe || !b.customerId) {
+    return res.status(400).json({ error: "no card on file for this booking" });
+  }
+  try {
+    const pms = await stripe.paymentMethods.list({ customer: b.customerId, type: "card" });
+    if (!pms.data.length) return res.status(400).json({ error: "no card on file" });
+    const pi = await stripe.paymentIntents.create({
+      amount: cents,
+      currency: "usd",
+      customer: b.customerId,
+      payment_method: pms.data[0].id,
+      off_session: true,
+      confirm: true,
+      description: `${b.svc.name} — ${CONFIG.shopName}`,
+      metadata: { bookingId: b.id },
+    });
+    b.status = "charged";
+    b.chargedCents = cents;
+    b.paymentIntent = pi.id;
+    bookings.set(b.id, b);
+    saveBookings();
+    res.json({ ok: true, charged: cents });
+  } catch (e) {
+    console.error("charge failed:", e.code || e.message);
+    res.status(402).json({
+      error: e.code === "card_declined" || e.type === "StripeCardError"
+        ? "card declined — collect in person"
+        : "charge failed — try again or use the Stripe dashboard",
+    });
+  }
+});
+
+app.post("/api/admin/status", adminAuth, (req, res) => {
+  const { bookingId, status } = req.body || {};
+  const b = bookings.get(bookingId);
+  if (!b) return res.status(404).json({ error: "booking not found" });
+  if (!["booked", "charged", "no_show", "cancelled"].includes(status)) {
+    return res.status(400).json({ error: "bad status" });
+  }
+  b.status = status;
+  bookings.set(b.id, b);
+  saveBookings();
+  res.json({ ok: true });
+});
 
 app.listen(PORT, () => {
   console.log(`Catch a Fade Chris — http://localhost:${PORT}`);
