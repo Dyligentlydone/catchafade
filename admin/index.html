@@ -176,7 +176,7 @@ function card(b){
     <div class="row">
       <input type="number" min="1" step="1" value="${b.svc.price}" id="amt-${b.id}" />
       <button class="btn-red" onclick="charge('${b.id}')">Charge</button>
-      <button onclick="paid('${b.id}')">Cash</button>
+      <button onclick="paid('${b.id}')">Paid</button>
     </div>
     <div class="actions">
       ${b.status === "booked" ? `<button onclick="setStatus('${b.id}','confirmed')">Confirm</button>` : ""}
@@ -213,7 +213,7 @@ window.charge = async id => {
 };
 window.paid = async id => {
   const amt = $(`#amt-${id}`).value;
-  if (!confirm(`Mark $${amt} as paid (cash / outside Stripe)?`)) return;
+  if (!confirm(`Mark $${amt} as paid (outside Stripe — cash, Zelle, etc.)?`)) return;
   try { await api("/api/admin/paid", { bookingId:id, amount:amt });
         toast(`Marked $${amt} paid`); load(); }
   catch (e) { toast(e.message); }
