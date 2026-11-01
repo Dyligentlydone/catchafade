@@ -153,18 +153,11 @@ app.post("/api/booking/start", async (req, res) => {
     pendings.set(id, booking);
     setTimeout(() => pendings.delete(id), PENDING_TTL);
 
-    // returning client — card already on file, verify by text code
+    // returning client — card already on file. The client sends their own
+    // booking text, which self-verifies: it comes from their real number.
     if (await hasSavedCard(customer.id)) {
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      otps.set(phoneE164, { code, exp: Date.now() + OTP_TTL, tries: 0 });
-      await sendSms(phoneE164,
-        `${CONFIG.shopName} — your booking code is ${code} (expires in 10 min)`);
-      return res.json({
-        status: "otp_required",
-        bookingId: id,
-        // lets you test the flow locally without Twilio
-        devCode: PROD ? undefined : code,
-      });
+      pendings.delete(id);
+      return res.json({ status: "has_card" });
     }
 
     // new client — Stripe Checkout saves the card (setup mode, no charge)

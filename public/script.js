@@ -244,6 +244,7 @@ function bookingPayload() {
 
 function renderSummary() {
   const svc = serviceById(state.service);
+  if (!svc) return;
   const p = bookingPayload();
   $("#summary").innerHTML = `
     <dl>
@@ -304,6 +305,7 @@ function resetBooking() {
   $("#summary").classList.remove("dimmed");
   $("#policy-note").hidden = false;
   $("#booked").hidden = true;
+  $("#sms-final").hidden = true;
   $(".book-controls").style.display = "";
   $("#f-notes").value = "";
   $("#f-addr").value = "";
@@ -336,12 +338,13 @@ async function submitBooking() {
       return;
     }
     if (data.status === "checkout") {
-      toast("Opening secure card setup — your booking continues right after.");
+      // stash the finished booking text — the page reloads after Stripe
+      // redirects back, so we rebuild the sms: link from storage
+      localStorage.setItem("cafc_sms", bookingMessage());
+      toast("One quick step — add a card (never charged), then your booking text goes out.");
       location.href = data.url;
-    } else if (data.status === "otp_required") {
-      state.bookingId = data.bookingId;
-      showOtp(data.devCode);
     } else {
+      // card already on file (or unknown status) — straight to the text
       fallbackSmsBook();
     }
   } catch {
@@ -441,7 +444,7 @@ $("#year").textContent = new Date().getFullYear();
 /* ---------- events ---------- */
 $("#btn-next").addEventListener("click", () => {
   if (state.step === 4) {
-    state.otpShown ? verifyCode() : fallbackSmsBook();
+    state.otpShown ? verifyCode() : submitBooking();
     return;
   }
   if (!validateStep()) return;
@@ -469,13 +472,44 @@ $$(".field input").forEach(i => i.addEventListener("input", () => {
 
 
 /* ---------- landing back from Stripe ---------- */
+function showSendSms(url) {
+  // jump straight to panel 4's success state with a send-text button
+  $$(".panel").forEach(p => p.classList.toggle("is-active", +p.dataset.panel === 4));
+  $$(".step").forEach(s => {
+    const n = +s.dataset.stepDot;
+    s.classList.toggle("is-active", n === 4);
+    s.classList.toggle("is-done", n < 4);
+  });
+  $("#summary").hidden = true;
+  $("#policy-note").hidden = true;
+  $("#otp-box").hidden = true;
+  const bk = $("#booked");
+  bk.hidden = false;
+  bk.querySelector(".booked-title").textContent = "Card saved ✓";
+  bk.querySelector(".hint").textContent = "Last step — send Chris your booking text.";
+  const a = $("#sms-final");
+  a.href = url;
+  a.hidden = false;
+  $(".book-controls").style.display = "none";
+  document.getElementById("book").scrollIntoView({ behavior: "smooth" });
+  // on touch devices, offer the messages app immediately too
+  if (matchMedia("(pointer: coarse)").matches) location.href = url;
+}
+
 function handleReturnParams() {
   const p = new URLSearchParams(location.search);
   const b = p.get("booking");
   if (!b) return;
   history.replaceState(null, "", location.pathname);
   if (b === "card-saved") {
-    toast("Card saved ✓ You're booked — Chris will text you to confirm.");
+    const msg = localStorage.getItem("cafc_sms");
+    localStorage.removeItem("cafc_sms");
+    if (msg) {
+      showSendSms(`sms:${CONFIG.phone}?&body=${encodeURIComponent(msg)}`);
+    } else {
+      toast("Card saved ✓ — send your booking text to finish.");
+      document.getElementById("book").scrollIntoView({ behavior: "smooth" });
+    }
   } else if (b === "cancelled") {
     toast("Card setup was cancelled — your booking isn't confirmed yet.");
     document.getElementById("book").scrollIntoView({ behavior: "smooth" });
