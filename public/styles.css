@@ -210,7 +210,7 @@ a { color: inherit; }
 }
 @keyframes poleSpin {
   from { transform: translateY(0); }
-  to   { transform: translateY(36px); }
+  to   { transform: translateY(62.75px); }
 }
 
 /* cylindrical glass shading + specular highlight */
