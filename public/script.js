@@ -273,7 +273,7 @@ function bookingMessage() {
 function setLoading(on) {
   const btn = $("#btn-next");
   btn.disabled = on;
-  btn.textContent = on ? "Working…" : (state.otpShown ? "Verify & Book" : "Confirm Booking");
+  btn.textContent = on ? "Working…" : (state.otpShown ? "Verify & Book" : "Send Booking");
 }
 
 function showOtp(devCode) {
@@ -312,11 +312,12 @@ function resetBooking() {
   goTo(1);
 }
 
-// Fallback when the booking API is unreachable — old text-it-yourself flow
+// Booking goes out as a text from the client's own phone — free, no accounts,
+// and Chris gets a real number he can reply to directly.
 function fallbackSmsBook() {
   const url = `sms:${CONFIG.phone}?&body=${encodeURIComponent(bookingMessage())}`;
   window.location.href = url;
-  toast("Couldn't reach the booking system — sending as a text instead.");
+  toast("Opening your messages — just press send.");
 }
 
 async function submitBooking() {
@@ -384,7 +385,7 @@ function goTo(step) {
     s.classList.toggle("is-done", n < step);
   });
   $("#btn-back").disabled = step === 1;
-  $("#btn-next").textContent = step === 4 ? "Confirm Booking" : "Continue";
+  $("#btn-next").textContent = step === 4 ? "Send Booking" : "Continue";
   if (step === 2 && state.date) renderTimes(new Date(state.date));
   if (step === 3) {
     $("#f-addr-wrap").hidden = !serviceById(state.service)?.needsAddress;
@@ -440,7 +441,7 @@ $("#year").textContent = new Date().getFullYear();
 /* ---------- events ---------- */
 $("#btn-next").addEventListener("click", () => {
   if (state.step === 4) {
-    state.otpShown ? verifyCode() : submitBooking();
+    state.otpShown ? verifyCode() : fallbackSmsBook();
     return;
   }
   if (!validateStep()) return;
