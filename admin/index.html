@@ -32,6 +32,14 @@
            border:1px solid var(--line); border-radius:8px; background:var(--panel);
            cursor:pointer; }
     .tab.on { color:var(--cream); border-color:var(--red); background:rgba(164,22,26,.12); }
+    .i-dot { display:inline-flex; align-items:center; justify-content:center;
+             width:15px; height:15px; margin-left:6px; border-radius:50%;
+             border:1px solid var(--gray); color:var(--gray); font-size:10px;
+             font-weight:700; vertical-align:1px; }
+    .tab.on .i-dot { border-color:var(--dim); color:var(--dim); }
+    #tab-tip { background:var(--panel); border:1px solid var(--line); border-radius:8px;
+               padding:12px 14px; margin:-8px 0 18px; font-size:13px; color:var(--dim);
+               line-height:1.5; }
     /* cards */
     .card { background:var(--panel); border:1px solid var(--line); border-radius:12px;
             padding:16px; margin-bottom:12px; }
@@ -94,10 +102,11 @@
     <div class="stats" id="stats"></div>
 
     <div class="tabs">
-      <div class="tab on" data-tab="bookings">Bookings</div>
-      <div class="tab" data-tab="clients">Clients</div>
-      <div class="tab" data-tab="timeoff">Time off</div>
+      <div class="tab on" data-tab="bookings">Bookings<span class="i-dot" data-tip="b">i</span></div>
+      <div class="tab" data-tab="clients">Clients<span class="i-dot" data-tip="c">i</span></div>
+      <div class="tab" data-tab="timeoff">Time off<span class="i-dot" data-tip="t">i</span></div>
     </div>
+    <div id="tab-tip" hidden></div>
 
     <div id="tab-bookings"><div id="list"></div></div>
     <div id="tab-clients" hidden><div id="client-list"></div></div>
@@ -143,6 +152,18 @@ function logout(){ sessionStorage.removeItem("cafc_admin_key"); KEY="";
   $("#app").hidden=true; $("#login").hidden=false; }
 
 /* ---------- tabs ---------- */
+const TIPS = {
+  b: "Every appointment lands here. Confirm it once their text comes in, then after the cut mark it Paid or Charge their card. No-shows, cancels and refunds live here too.",
+  c: "Everyone who's ever booked — their number, visit count, no-shows, and a notes spot for their usual cut, guard, whatever you want to remember.",
+  t: "Block days or hours you can't work — vacation, appointments, whatever. Clients won't see those times when they go to book.",
+};
+document.querySelectorAll(".i-dot").forEach(d => d.addEventListener("click", e => {
+  e.stopPropagation();
+  const tip = $("#tab-tip");
+  const showing = !tip.hidden && tip._k === d.dataset.tip;
+  tip.hidden = showing;
+  if (!showing) { tip.textContent = TIPS[d.dataset.tip]; tip._k = d.dataset.tip; }
+}));
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
   ["bookings","clients","timeoff"].forEach(n =>
