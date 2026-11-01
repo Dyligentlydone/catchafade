@@ -41,7 +41,7 @@
              padding:4px 9px; border-radius:3px; white-space:nowrap; }
     .b-booked { background:var(--panel2); color:var(--dim); border:1px solid var(--line); }
     .b-confirmed { background:rgba(164,22,26,.2); color:var(--red2); border:1px solid var(--red); }
-    .b-charged { background:rgba(60,160,60,.15); color:var(--green); border:1px solid #3a6b3a; }
+    .b-charged,.b-paid { background:rgba(60,160,60,.15); color:var(--green); border:1px solid #3a6b3a; }
     .b-no_show,.b-refunded { background:rgba(211,31,38,.18); color:var(--red2); border:1px solid #6b2020; }
     .b-cancelled { background:var(--panel2); color:var(--gray); border:1px solid var(--line); }
     .bk-meta { color:var(--dim); font-size:14px; margin:8px 0 4px; line-height:1.6; }
@@ -153,14 +153,15 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 
 /* ---------- bookings ---------- */
 const STATUS_LABEL = { booked:"New", confirmed:"Confirmed", charged:"Charged",
-  refunded:"Refunded", no_show:"No-show", cancelled:"Cancelled" };
+  paid:"Paid", refunded:"Refunded", no_show:"No-show", cancelled:"Cancelled" };
 
 function card(b){
   const done = b.status !== "booked" && b.status !== "confirmed";
+  const paidCents = b.chargedCents || b.paidCents;
   return `<div class="card">
     <div class="bk-top">
       <span class="bk-name">${esc(b.name)}</span>
-      <span class="badge b-${b.status}">${STATUS_LABEL[b.status]}${b.chargedCents?` · $${(b.chargedCents/100).toFixed(0)}`:""}</span>
+      <span class="badge b-${b.status}">${STATUS_LABEL[b.status]}${paidCents?` · $${(paidCents/100).toFixed(0)}`:""}</span>
     </div>
     <div class="bk-meta">
       ${esc(b.svc.name)} — $${b.svc.price}${b.svc.priceNote||""}<br>
@@ -175,6 +176,7 @@ function card(b){
     <div class="row">
       <input type="number" min="1" step="1" value="${b.svc.price}" id="amt-${b.id}" />
       <button class="btn-red" onclick="charge('${b.id}')">Charge</button>
+      <button onclick="paid('${b.id}')">Cash</button>
     </div>
     <div class="actions">
       ${b.status === "booked" ? `<button onclick="setStatus('${b.id}','confirmed')">Confirm</button>` : ""}
@@ -194,7 +196,7 @@ async function load(){
   $("#stats").innerHTML =
     `<div class="stat"><b>$${data.stats.week}</b><span>This week</span></div>` +
     `<div class="stat"><b>$${data.stats.today}</b><span>Today</span></div>` +
-    `<div class="stat"><b>${up.length}</b><span>Upcoming</span></div>`;
+    `<div class="stat"><b>$${data.stats.bookedValue}</b><span>${up.length} booked</span></div>`;
   $("#list").innerHTML =
     `<div class="sect">Upcoming (${up.length})</div>` +
     (up.map(card).join("") || `<div class="empty">No upcoming bookings.</div>`) +
@@ -207,6 +209,13 @@ window.charge = async id => {
   if (!confirm(`Charge $${amt} to this client's saved card?`)) return;
   try { await api("/api/admin/charge", { bookingId:id, amount:amt });
         toast(`Charged $${amt} ✓`); load(); }
+  catch (e) { toast(e.message); }
+};
+window.paid = async id => {
+  const amt = $(`#amt-${id}`).value;
+  if (!confirm(`Mark $${amt} as paid (cash / outside Stripe)?`)) return;
+  try { await api("/api/admin/paid", { bookingId:id, amount:amt });
+        toast(`Marked $${amt} paid`); load(); }
   catch (e) { toast(e.message); }
 };
 window.refund = async id => {

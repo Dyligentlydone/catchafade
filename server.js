@@ -277,20 +277,28 @@ function adminAuth(req, res, next) {
 app.get("/admin", (req, res) =>
   res.sendFile(path.join(__dirname, "admin", "index.html")));
 
-const ACTIVE_STATUSES = ["booked", "confirmed", "charged", "refunded", "no_show", "cancelled"];
+const ACTIVE_STATUSES = ["booked", "confirmed", "charged", "paid", "refunded", "no_show", "cancelled"];
 
 app.get("/api/admin/bookings", adminAuth, (req, res) => {
   const now = new Date();
   const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const week0 = new Date(day0); week0.setDate(week0.getDate() - week0.getDay());
+  const todayISO = now.toISOString().slice(0, 10);
+  const collected = b => (b.status === "charged" || b.status === "no_show" ? b.chargedCents || 0
+                        : b.status === "paid" ? b.paidCents || 0 : 0);
+  const paidAt = b => b.chargedAt || b.paidAt || b.createdAt;
   const earned = since => [...bookings.values()]
-    .filter(b => b.status === "charged" && b.chargedAt && new Date(b.chargedAt) >= since)
-    .reduce((s, b) => s + b.chargedCents, 0) / 100;
+    .filter(b => collected(b) && new Date(paidAt(b)) >= since)
+    .reduce((s, b) => s + collected(b), 0) / 100;
+  const bookedValue = [...bookings.values()]
+    .filter(b => (b.status === "booked" || b.status === "confirmed") &&
+                 (!b.dateISO || b.dateISO >= todayISO))
+    .reduce((s, b) => s + b.svc.price, 0);
   res.json({
     bookings: [...bookings.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     noShowFee: CONFIG.noShowPolicy.fee,
     stripe: !!stripe,
-    stats: { today: earned(day0), week: earned(week0) },
+    stats: { today: earned(day0), week: earned(week0), bookedValue },
   });
 });
 
@@ -346,6 +354,21 @@ app.post("/api/admin/status", adminAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// paid outside Stripe (cash, Zelle, etc.) — counts toward revenue, nothing to refund
+app.post("/api/admin/paid", adminAuth, (req, res) => {
+  const { bookingId, amount } = req.body || {};
+  const b = bookings.get(bookingId);
+  if (!b) return res.status(404).json({ error: "booking not found" });
+  const cents = Math.round(parseFloat(amount) * 100);
+  if (!cents || cents <= 0) return res.status(400).json({ error: "bad amount" });
+  b.status = "paid";
+  b.paidCents = cents;
+  b.paidAt = new Date().toISOString();
+  bookings.set(b.id, b);
+  saveBookings();
+  res.json({ ok: true });
+});
+
 app.post("/api/admin/refund", adminAuth, async (req, res) => {
   const { bookingId } = req.body || {};
   const b = bookings.get(bookingId);
@@ -393,7 +416,7 @@ app.get("/api/admin/clients", adminAuth, (req, res) => {
     });
     c.booked++;
     c.name = b.name || c.name;
-    if (b.status === "charged") c.visits++;
+    if (b.status === "charged" || b.status === "paid") c.visits++;
     if (b.status === "no_show") c.noShows++;
     if (b.customerId || b.cardSaved || b.chargedCents) c.card = true;
     if (b.createdAt > c.lastAt) c.lastAt = b.createdAt;
