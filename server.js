@@ -51,17 +51,28 @@ const OTP_MAX_TRIES = 5;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const BOOKINGS_FILE = path.join(DATA_DIR, "bookings.json");
 const bookings = new Map(); // id -> booking
+const blocks = [];          // {id, dateISO, timeMin|null, mins|null, label} — time off
+const clients = new Map();  // phoneE164 -> {notes}
+const BLOCKS_FILE = path.join(DATA_DIR, "blocks.json");
+const CLIENTS_FILE = path.join(DATA_DIR, "clients.json");
+
+function loadJSON(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch { return fallback; }
+}
+function saveJSON(file, data) {
+  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
+  catch (e) { console.error(`${file} not persisted:`, e.message); }
+}
 try {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  for (const b of JSON.parse(fs.readFileSync(BOOKINGS_FILE, "utf8"))) {
-    bookings.set(b.id, b);
-  }
+  for (const b of loadJSON(BOOKINGS_FILE, [])) bookings.set(b.id, b);
+  blocks.push(...loadJSON(BLOCKS_FILE, []));
+  for (const c of loadJSON(CLIENTS_FILE, [])) clients.set(c.phone, c);
 } catch { /* first run or unwritable — memory only */ }
-function saveBookings() {
-  try {
-    fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([...bookings.values()], null, 2));
-  } catch (e) { console.error("bookings not persisted:", e.message); }
-}
+const saveBookings = () => saveJSON(BOOKINGS_FILE, [...bookings.values()]);
+const saveBlocks = () => saveJSON(BLOCKS_FILE, blocks);
+const saveClients = () => saveJSON(CLIENTS_FILE, [...clients.values()]);
 
 
 /* ---------- helpers ---------- */
@@ -156,8 +167,16 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, stripe: !!stripe, sms: twilioReady });
 });
 
+// what the booking picker needs to gray out taken slots + time off
+app.get("/api/availability", (req, res) => {
+  const booked = [...bookings.values()]
+    .filter(b => (b.status === "booked" || b.status === "confirmed") && b.dateISO && b.timeMin != null)
+    .map(b => ({ dateISO: b.dateISO, timeMin: b.timeMin, mins: b.svc.mins }));
+  res.json({ booked, blocked: blocks });
+});
+
 app.post("/api/booking/start", async (req, res) => {
-  const { name, phone, serviceId, date, time, notes, address } = req.body || {};
+  const { name, phone, serviceId, date, time, notes, address, dateISO, timeMin } = req.body || {};
   const svc = CONFIG.services.find(s => s.id === serviceId);
   const phoneE164 = toE164(phone);
   if (!name || !svc || !date || !time || phoneE164.length < 8) {
@@ -167,6 +186,7 @@ app.post("/api/booking/start", async (req, res) => {
   const id = newId();
   const booking = {
     id, name, phone: phoneE164, svc, date, time, notes, address,
+    dateISO: dateISO || null, timeMin: timeMin ?? null,
     status: "booked", createdAt: new Date().toISOString(),
   };
 
@@ -257,11 +277,20 @@ function adminAuth(req, res, next) {
 app.get("/admin", (req, res) =>
   res.sendFile(path.join(__dirname, "admin", "index.html")));
 
+const ACTIVE_STATUSES = ["booked", "confirmed", "charged", "refunded", "no_show", "cancelled"];
+
 app.get("/api/admin/bookings", adminAuth, (req, res) => {
+  const now = new Date();
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const week0 = new Date(day0); week0.setDate(week0.getDate() - week0.getDay());
+  const earned = since => [...bookings.values()]
+    .filter(b => b.status === "charged" && b.chargedAt && new Date(b.chargedAt) >= since)
+    .reduce((s, b) => s + b.chargedCents, 0) / 100;
   res.json({
     bookings: [...bookings.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     noShowFee: CONFIG.noShowPolicy.fee,
     stripe: !!stripe,
+    stats: { today: earned(day0), week: earned(week0) },
   });
 });
 
@@ -289,6 +318,7 @@ app.post("/api/admin/charge", adminAuth, async (req, res) => {
     });
     b.status = "charged";
     b.chargedCents = cents;
+    b.chargedAt = new Date().toISOString();
     b.paymentIntent = pi.id;
     bookings.set(b.id, b);
     saveBookings();
@@ -307,12 +337,81 @@ app.post("/api/admin/status", adminAuth, (req, res) => {
   const { bookingId, status } = req.body || {};
   const b = bookings.get(bookingId);
   if (!b) return res.status(404).json({ error: "booking not found" });
-  if (!["booked", "charged", "no_show", "cancelled"].includes(status)) {
+  if (!ACTIVE_STATUSES.includes(status)) {
     return res.status(400).json({ error: "bad status" });
   }
   b.status = status;
   bookings.set(b.id, b);
   saveBookings();
+  res.json({ ok: true });
+});
+
+app.post("/api/admin/refund", adminAuth, async (req, res) => {
+  const { bookingId } = req.body || {};
+  const b = bookings.get(bookingId);
+  if (!b || !b.paymentIntent) return res.status(400).json({ error: "nothing to refund" });
+  if (!stripe) return res.status(503).json({ error: "stripe not configured" });
+  try {
+    await stripe.refunds.create({ payment_intent: b.paymentIntent });
+    b.status = "refunded";
+    bookings.set(b.id, b);
+    saveBookings();
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("refund failed:", e.message);
+    res.status(500).json({ error: "refund failed — try the Stripe dashboard" });
+  }
+});
+
+// time-off blocks
+app.get("/api/admin/blocks", adminAuth, (req, res) => res.json({ blocks }));
+app.post("/api/admin/blocks", adminAuth, (req, res) => {
+  const { dateISO, timeMin, mins, label } = req.body || {};
+  if (!dateISO) return res.status(400).json({ error: "need a date" });
+  blocks.push({
+    id: newId(), dateISO,
+    timeMin: timeMin ?? null, mins: mins ?? null, label: label || "",
+  });
+  saveBlocks();
+  res.json({ ok: true });
+});
+app.delete("/api/admin/blocks/:id", adminAuth, (req, res) => {
+  const i = blocks.findIndex(b => b.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: "not found" });
+  blocks.splice(i, 1);
+  saveBlocks();
+  res.json({ ok: true });
+});
+
+// client profiles — derived from booking history + stored notes
+app.get("/api/admin/clients", adminAuth, (req, res) => {
+  const out = {};
+  for (const b of bookings.values()) {
+    const c = out[b.phone] || (out[b.phone] = {
+      name: b.name, phone: b.phone, booked: 0, visits: 0, noShows: 0,
+      lastAt: "", services: {}, card: false,
+    });
+    c.booked++;
+    c.name = b.name || c.name;
+    if (b.status === "charged") c.visits++;
+    if (b.status === "no_show") c.noShows++;
+    if (b.customerId || b.cardSaved || b.chargedCents) c.card = true;
+    if (b.createdAt > c.lastAt) c.lastAt = b.createdAt;
+    c.services[b.svc.name] = (c.services[b.svc.name] || 0) + 1;
+  }
+  res.json({
+    clients: Object.values(out).map(c => ({
+      ...c,
+      notes: clients.get(c.phone)?.notes || "",
+      usual: Object.entries(c.services).sort((a, x) => x[1] - a[1])[0]?.[0] || "",
+    })).sort((a, b) => b.lastAt.localeCompare(a.lastAt)),
+  });
+});
+app.post("/api/admin/client", adminAuth, (req, res) => {
+  const { phone, notes } = req.body || {};
+  if (!phone) return res.status(400).json({ error: "need phone" });
+  clients.set(phone, { phone, notes: notes || "" });
+  saveClients();
   res.json({ ok: true });
 });
 

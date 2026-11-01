@@ -9,49 +9,69 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     :root { --black:#0b0b0c; --panel:#141416; --panel2:#1b1b1e; --line:#2a2a2e;
-            --cream:#efe7d3; --dim:#b8b09c; --red:#a4161a; --red2:#d31f26; --gray:#7d7d82; }
+            --cream:#efe7d3; --dim:#b8b09c; --red:#a4161a; --red2:#d31f26;
+            --gray:#7d7d82; --green:#7fca7f; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:var(--black); color:var(--cream); font-family:Archivo,sans-serif;
            min-height:100svh; padding:24px 16px 60px; }
-    .wrap { max-width:560px; margin:0 auto; }
+    .wrap { max-width:600px; margin:0 auto; }
     h1 { font-family:"Bebas Neue"; font-size:34px; letter-spacing:2px; text-align:center; }
     h1 em { font-style:normal; color:var(--red2); }
     .sub { text-align:center; color:var(--gray); font-size:12px; letter-spacing:2px;
-           text-transform:uppercase; margin:4px 0 24px; }
+           text-transform:uppercase; margin:4px 0 20px; }
+    /* stats */
+    .stats { display:flex; gap:10px; margin-bottom:20px; }
+    .stat { flex:1; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+            padding:14px 8px; text-align:center; }
+    .stat b { display:block; font-family:"Bebas Neue"; font-size:28px; letter-spacing:1px; }
+    .stat span { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray); }
+    /* tabs */
+    .tabs { display:flex; gap:6px; margin-bottom:18px; }
+    .tab { flex:1; padding:11px 0; text-align:center; font-weight:700; font-size:12px;
+           letter-spacing:1.5px; text-transform:uppercase; color:var(--gray);
+           border:1px solid var(--line); border-radius:8px; background:var(--panel);
+           cursor:pointer; }
+    .tab.on { color:var(--cream); border-color:var(--red); background:rgba(164,22,26,.12); }
+    /* cards */
     .card { background:var(--panel); border:1px solid var(--line); border-radius:12px;
-            padding:18px; margin-bottom:14px; }
+            padding:16px; margin-bottom:12px; }
     .bk-top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
     .bk-name { font-family:"Bebas Neue"; font-size:24px; letter-spacing:1px; }
     .badge { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
              padding:4px 9px; border-radius:3px; white-space:nowrap; }
-    .b-booked { background:rgba(164,22,26,.2); color:var(--red2); border:1px solid var(--red); }
-    .b-charged { background:rgba(60,160,60,.15); color:#7fca7f; border:1px solid #3a6b3a; }
-    .b-no_show { background:rgba(211,31,38,.18); color:var(--red2); border:1px solid #6b2020; }
+    .b-booked { background:var(--panel2); color:var(--dim); border:1px solid var(--line); }
+    .b-confirmed { background:rgba(164,22,26,.2); color:var(--red2); border:1px solid var(--red); }
+    .b-charged { background:rgba(60,160,60,.15); color:var(--green); border:1px solid #3a6b3a; }
+    .b-no_show,.b-refunded { background:rgba(211,31,38,.18); color:var(--red2); border:1px solid #6b2020; }
     .b-cancelled { background:var(--panel2); color:var(--gray); border:1px solid var(--line); }
     .bk-meta { color:var(--dim); font-size:14px; margin:8px 0 4px; line-height:1.6; }
     .bk-meta a { color:var(--cream); text-decoration:none; border-bottom:1px solid var(--red); }
     .bk-notes { color:var(--gray); font-size:13px; font-style:italic; }
-    .actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
-    button, .btnlike { font-family:Archivo; font-weight:700; font-size:13px; letter-spacing:1px;
+    .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    button { font-family:Archivo; font-weight:700; font-size:13px; letter-spacing:1px;
       text-transform:uppercase; padding:11px 16px; border-radius:6px; border:1px solid var(--line);
       background:var(--panel2); color:var(--cream); cursor:pointer; transition:.15s; }
     button:hover { border-color:var(--dim); }
     button:disabled { opacity:.4; cursor:not-allowed; }
     .btn-red { background:var(--red); border-color:var(--red); }
     .btn-red:hover { background:var(--red2); }
-    .charge-row { display:flex; gap:8px; margin-top:12px; }
-    .charge-row input { flex:1; background:var(--black); border:1px solid var(--line);
-      border-radius:6px; color:var(--cream); font-family:Archivo; font-size:16px;
+    .row { display:flex; gap:8px; margin-top:12px; }
+    .row input, .row select { flex:1; background:var(--black); border:1px solid var(--line);
+      border-radius:6px; color:var(--cream); font-family:Archivo; font-size:15px;
       padding:10px 12px; min-width:0; }
-    .charge-row input:focus { outline:none; border-color:var(--red2); }
+    .row input:focus { outline:none; border-color:var(--red2); }
     .sect { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gray);
-            margin:26px 0 12px; }
-    .empty { text-align:center; color:var(--gray); padding:40px 0; font-size:14px; }
+            margin:24px 0 12px; }
+    .empty { text-align:center; color:var(--gray); padding:36px 0; font-size:14px; }
+    .muted { color:var(--gray); font-size:12px; }
+    .block-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background:var(--panel); border:1px solid var(--line); border-radius:8px;
+      padding:12px 14px; margin-bottom:8px; font-size:14px; }
+    .block-row button { padding:6px 12px; font-size:11px; }
     #login { max-width:340px; margin:15vh auto 0; text-align:center; }
     #login input { width:100%; background:var(--panel2); border:1px solid var(--line);
       border-radius:8px; color:var(--cream); font-size:16px; padding:14px;
       margin:16px 0 12px; text-align:center; }
-    #login input:focus { outline:none; border-color:var(--red2); }
     #login button { width:100%; }
     .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(70px);
       background:var(--cream); color:var(--black); font-size:14px; font-weight:600;
@@ -69,8 +89,30 @@
 
   <div class="wrap" id="app" hidden>
     <h1>Catch a Fade <em>Admin</em></h1>
-    <p class="sub" id="sub-line">Bookings</p>
-    <div id="list"></div>
+    <p class="sub" id="sub-line">Admin dashboard</p>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs">
+      <div class="tab on" data-tab="bookings">Bookings</div>
+      <div class="tab" data-tab="clients">Clients</div>
+      <div class="tab" data-tab="timeoff">Time off</div>
+    </div>
+
+    <div id="tab-bookings"><div id="list"></div></div>
+    <div id="tab-clients" hidden><div id="client-list"></div></div>
+    <div id="tab-timeoff" hidden>
+      <div class="card">
+        <div class="row"><input type="date" id="blk-date" /></div>
+        <div class="row">
+          <select id="blk-from"><option value="">All day</option></select>
+          <select id="blk-to"><option value="">—</option></select>
+        </div>
+        <div class="row"><input type="text" id="blk-label" placeholder="Label (optional — e.g. vacation)" /></div>
+        <div class="row"><button class="btn-red" id="blk-add">Block time</button></div>
+      </div>
+      <div id="block-list"></div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -80,12 +122,15 @@ const $ = s => document.querySelector(s);
 let KEY = sessionStorage.getItem("cafc_admin_key") || "";
 let feeText = "$25";
 
-function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show");
-  clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove("show"),3000); }
+const toast = m => { const t=$("#toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove("show"),3000); };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtT = m => `${Math.floor(m/60)%12||12}:${String(m%60).padStart(2,"0")} ${m>=720?"PM":"AM"}`;
 
-async function api(path, body){
+async function api(path, body, method){
   const r = await fetch(path, {
-    method: body ? "POST" : "GET",
+    method: method || (body ? "POST" : "GET"),
     headers: { "Content-Type":"application/json", "x-admin-key": KEY },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -95,12 +140,23 @@ async function api(path, body){
   return data;
 }
 function logout(){ sessionStorage.removeItem("cafc_admin_key"); KEY="";
-  $("#app").hidden = true; $("#login").hidden = false; }
+  $("#app").hidden=true; $("#login").hidden=false; }
 
-const STATUS_LABEL = { booked:"Booked", charged:"Charged", no_show:"No-show", cancelled:"Cancelled" };
+/* ---------- tabs ---------- */
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  ["bookings","clients","timeoff"].forEach(n =>
+    $(`#tab-${n}`).hidden = n !== t.dataset.tab);
+  if (t.dataset.tab === "clients") loadClients();
+  if (t.dataset.tab === "timeoff") loadBlocks();
+}));
+
+/* ---------- bookings ---------- */
+const STATUS_LABEL = { booked:"New", confirmed:"Confirmed", charged:"Charged",
+  refunded:"Refunded", no_show:"No-show", cancelled:"Cancelled" };
 
 function card(b){
-  const done = b.status !== "booked";
+  const done = b.status !== "booked" && b.status !== "confirmed";
   return `<div class="card">
     <div class="bk-top">
       <span class="bk-name">${esc(b.name)}</span>
@@ -111,30 +167,34 @@ function card(b){
       ${esc(b.date)} · ${esc(b.time)}<br>
       <a href="sms:${esc(b.phone)}">${esc(b.phone)}</a>
       ${b.address ? `<br>${esc(b.address)}` : ""}
-      ${b.cardSaved === false ? "" : ""}
     </div>
     ${b.notes ? `<div class="bk-notes">"${esc(b.notes)}"</div>` : ""}
-    ${done ? "" : `
-    <div class="charge-row">
+    ${done
+      ? (b.status === "charged" ? `<div class="actions"><button onclick="refund('${b.id}')">Refund</button></div>` : "")
+      : `
+    <div class="row">
       <input type="number" min="1" step="1" value="${b.svc.price}" id="amt-${b.id}" />
       <button class="btn-red" onclick="charge('${b.id}')">Charge</button>
     </div>
     <div class="actions">
+      ${b.status === "booked" ? `<button onclick="setStatus('${b.id}','confirmed')">Confirm</button>` : ""}
       <button onclick="noShow('${b.id}')">No-show ${feeText}</button>
-      <button onclick="setStatus('${b.id}','cancelled')">Cancel</button>
+      <button onclick="setStatus('${b.id}','cancelled')">Decline</button>
     </div>`}
   </div>`;
 }
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
-  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 async function load(){
   const data = await api("/api/admin/bookings");
   feeText = data.noShowFee || feeText;
-  $("#sub-line").textContent = data.stripe
-    ? "Bookings · Stripe connected" : "Bookings · Stripe NOT connected (charges off)";
-  const up = data.bookings.filter(b => b.status === "booked");
-  const done = data.bookings.filter(b => b.status !== "booked");
+  $("#sub-line").textContent = data.stripe ? "Admin dashboard · Stripe connected"
+                                          : "Admin dashboard · Stripe NOT connected";
+  const up = data.bookings.filter(b => b.status === "booked" || b.status === "confirmed");
+  const done = data.bookings.filter(b => b.status !== "booked" && b.status !== "confirmed");
+  $("#stats").innerHTML =
+    `<div class="stat"><b>$${data.stats.week}</b><span>This week</span></div>` +
+    `<div class="stat"><b>$${data.stats.today}</b><span>Today</span></div>` +
+    `<div class="stat"><b>${up.length}</b><span>Upcoming</span></div>`;
   $("#list").innerHTML =
     `<div class="sect">Upcoming (${up.length})</div>` +
     (up.map(card).join("") || `<div class="empty">No upcoming bookings.</div>`) +
@@ -142,35 +202,97 @@ async function load(){
     (done.map(card).join("") || `<div class="empty">Nothing yet.</div>`);
 }
 
-window.charge = async (id) => {
+window.charge = async id => {
   const amt = $(`#amt-${id}`).value;
   if (!confirm(`Charge $${amt} to this client's saved card?`)) return;
-  try {
-    await api("/api/admin/charge", { bookingId: id, amount: amt });
-    toast(`Charged $${amt} ✓`);
-    load();
-  } catch (e) { toast(e.message); }
+  try { await api("/api/admin/charge", { bookingId:id, amount:amt });
+        toast(`Charged $${amt} ✓`); load(); }
+  catch (e) { toast(e.message); }
 };
-window.noShow = async (id) => {
+window.refund = async id => {
+  if (!confirm("Refund this charge in full?")) return;
+  try { await api("/api/admin/refund", { bookingId:id }); toast("Refunded"); load(); }
+  catch (e) { toast(e.message); }
+};
+window.noShow = async id => {
   const amt = feeText.replace(/[^0-9.]/g, "");
   if (!confirm(`Mark no-show and charge the ${feeText} fee?`)) return;
   try {
-    await api("/api/admin/charge", { bookingId: id, amount: amt });
-    await api("/api/admin/status", { bookingId: id, status: "no_show" });
-    toast(`No-show fee ${feeText} charged`);
-    load();
+    await api("/api/admin/charge", { bookingId:id, amount:amt });
+    await api("/api/admin/status", { bookingId:id, status:"no_show" });
+    toast(`No-show fee ${feeText} charged`); load();
   } catch (e) {
     if (confirm(`${e.message}\n\nMark as no-show anyway?`)) {
-      await api("/api/admin/status", { bookingId: id, status: "no_show" });
-      load();
+      await api("/api/admin/status", { bookingId:id, status:"no_show" }); load();
     }
   }
 };
 window.setStatus = async (id, s) => {
-  try { await api("/api/admin/status", { bookingId: id, status: s }); load(); }
+  try { await api("/api/admin/status", { bookingId:id, status:s }); load(); }
   catch (e) { toast(e.message); }
 };
 
+/* ---------- clients ---------- */
+async function loadClients(){
+  const data = await api("/api/admin/clients");
+  $("#client-list").innerHTML = data.clients.map(c => `
+    <div class="card">
+      <div class="bk-top">
+        <span class="bk-name">${esc(c.name)}</span>
+        <span class="badge ${c.noShows ? "b-no_show" : "b-confirmed"}">
+          ${c.noShows ? `${c.noShows} no-show${c.noShows>1?"s":""}` : (c.card ? "card on file" : "no card")}
+        </span>
+      </div>
+      <div class="bk-meta">
+        <a href="sms:${esc(c.phone)}">${esc(c.phone)}</a><br>
+        ${c.visits} visit${c.visits===1?"":"s"} · ${c.booked} booking${c.booked===1?"":"s"}
+        ${c.usual ? ` · usually ${esc(c.usual)}` : ""}
+        ${c.lastAt ? ` · last ${new Date(c.lastAt).toLocaleDateString()}` : ""}
+      </div>
+      <div class="row">
+        <input type="text" placeholder="Notes — usual cut, guard, style…"
+               value="${esc(c.notes)}" id="note-${esc(c.phone)}" />
+        <button onclick="saveNote('${esc(c.phone)}')">Save</button>
+      </div>
+    </div>`).join("") || `<div class="empty">No clients yet.</div>`;
+}
+window.saveNote = async phone => {
+  try { await api("/api/admin/client", { phone, notes: $(`#note-${CSS.escape(phone)}`).value });
+        toast("Note saved"); }
+  catch (e) { toast(e.message); }
+};
+
+/* ---------- time off ---------- */
+(function buildTimeSelects(){
+  let opts = "";
+  for (let m = 7*60; m <= 22*60; m += 30) opts += `<option value="${m}">${fmtT(m)}</option>`;
+  $("#blk-from").innerHTML += opts; $("#blk-to").innerHTML += opts;
+})();
+async function loadBlocks(){
+  const data = await api("/api/admin/blocks");
+  $("#block-list").innerHTML = data.blocks.map(b => `
+    <div class="block-row">
+      <span>${esc(b.dateISO)} · ${b.timeMin == null ? "All day" : `${fmtT(b.timeMin)}–${fmtT(b.timeMin+b.mins)}`}
+        ${b.label ? ` <span class="muted">(${esc(b.label)})</span>` : ""}</span>
+      <button onclick="delBlock('${b.id}')">Remove</button>
+    </div>`).join("") || `<div class="empty">No time blocked off.</div>`;
+}
+$("#blk-add").addEventListener("click", async () => {
+  const dateISO = $("#blk-date").value;
+  if (!dateISO) { toast("Pick a date first."); return; }
+  const from = $("#blk-from").value, to = $("#blk-to").value;
+  const body = { dateISO, label: $("#blk-label").value.trim() };
+  if (from !== "" && to !== "") { body.timeMin = +from; body.mins = +to - +from; }
+  try { await api("/api/admin/blocks", body); toast("Time blocked");
+        $("#blk-label").value = ""; loadBlocks(); }
+  catch (e) { toast(e.message); }
+});
+window.delBlock = async id => {
+  try { await api(`/api/admin/blocks/${id}`, null, "DELETE"); loadBlocks(); }
+  catch (e) { toast(e.message); }
+};
+
+/* ---------- login ---------- */
 $("#pw-btn").addEventListener("click", () => {
   KEY = $("#pw").value.trim();
   sessionStorage.setItem("cafc_admin_key", KEY);

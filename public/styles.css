@@ -626,6 +626,10 @@ a { color: inherit; }
   transition: border-color 0.2s, background 0.2s;
 }
 .date-btn:hover { border-color: var(--cream-dim); }
+.date-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 .date-btn.is-selected {
   border-color: var(--red-bright);
   background: rgba(164,22,26,0.12);

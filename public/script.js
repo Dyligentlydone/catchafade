@@ -17,6 +17,7 @@ const state = {
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DOW_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+let AVAIL = { booked: [], blocked: [] };
 
 
 /* ---------- helpers ---------- */
@@ -31,6 +32,33 @@ function fmtHourRange(h) {
 }
 function fmtDateShort(d) {
   return `${DOW[d.getDay()]} ${MON[d.getMonth()]} ${d.getDate()}`;
+}
+function dayISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function overlap(s1, e1, s2, e2) { return s1 < e2 && s2 < e1; }
+
+// slots for a day, flagged taken by booked appointments or time-off blocks
+function slotsForDay(day) {
+  const svc = serviceById(state.service);
+  const h = CONFIG.hours[day.getDay()];
+  if (!h || !svc || svc.request) return [];
+  const iso = dayISO(day);
+  const isToday = day.toDateString() === new Date().toDateString();
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes() + CONFIG.minLeadMinutes;
+  const slots = [];
+  for (let t = h.open * 60; t + svc.mins <= h.close * 60; t += CONFIG.slotMinutes) {
+    let taken = isToday && t < nowMin;
+    if (!taken) for (const b of AVAIL.booked) {
+      if (b.dateISO === iso && overlap(t, t + svc.mins, b.timeMin, b.timeMin + b.mins)) { taken = true; break; }
+    }
+    if (!taken) for (const bl of AVAIL.blocked) {
+      if (bl.dateISO !== iso) continue;
+      if (bl.timeMin == null || overlap(t, t + svc.mins, bl.timeMin, bl.timeMin + bl.mins)) { taken = true; break; }
+    }
+    slots.push({ t, taken });
+  }
+  return slots;
 }
 function toast(msg) {
   const t = $("#toast");
@@ -162,14 +190,16 @@ function renderDates() {
   }
   strip.innerHTML = days.map(day => {
     const key = day.toDateString();
-    return `<button type="button" class="date-btn ${state.date === key ? "is-selected" : ""}" data-date="${key}">
+    const full = !slotsForDay(day).some(s => !s.taken);
+    return `<button type="button" class="date-btn ${state.date === key ? "is-selected" : ""}"
+      data-date="${key}" ${full ? "disabled" : ""}>
       <span class="date-dow">${DOW[day.getDay()]}</span>
       <span class="date-num">${day.getDate()}</span>
       <span class="date-mon">${MON[day.getMonth()]}</span>
     </button>`;
   }).join("");
 
-  $$("#date-strip .date-btn").forEach(b => {
+  $$("#date-strip .date-btn:not(:disabled)").forEach(b => {
     b.addEventListener("click", () => {
       state.date = b.dataset.date;
       state.time = null;
@@ -200,19 +230,11 @@ function renderTimes(day) {
     return;
   }
 
-  const isToday = day.toDateString() === new Date().toDateString();
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes() + CONFIG.minLeadMinutes;
-
-  const slots = [];
-  for (let t = h.open * 60; t + svc.mins <= h.close * 60; t += CONFIG.slotMinutes) {
-    slots.push(t);
-  }
-
-  grid.innerHTML = slots.map(t => {
+  const slots = slotsForDay(day);
+  grid.innerHTML = slots.map(({ t, taken }) => {
     const label = fmtTime(Math.floor(t / 60), t % 60);
-    const past = isToday && t < nowMin;
     return `<button type="button" class="time-btn ${state.time === t ? "is-selected" : ""}"
-      data-time="${t}" ${past ? "disabled" : ""}>${label}</button>`;
+      data-time="${t}" ${taken ? "disabled" : ""}>${label}</button>`;
   }).join("") || `<p class="hint">No slots left this day — try another.</p>`;
 
   $$("#time-grid .time-btn").forEach(b => {
@@ -234,6 +256,8 @@ function bookingPayload() {
     phone: $("#f-phone").value.trim(),
     serviceId: svc.id,
     date: fmtDateShort(d),
+    dateISO: dayISO(d),
+    timeMin: svc.request ? null : state.time,
     time: svc.request
       ? state.timeText.trim() + " (requested)"
       : fmtTime(Math.floor(state.time / 60), state.time % 60),
@@ -344,7 +368,11 @@ async function submitBooking() {
       toast("One quick step — add a card (never charged), then your booking text goes out.");
       location.href = data.url;
     } else {
-      // card already on file (or unknown status) — straight to the text
+      // card already on file or SMS-only — mark the slot taken + go to the text
+      const p = bookingPayload();
+      if (p.timeMin != null) {
+        AVAIL.booked.push({ dateISO: p.dateISO, timeMin: p.timeMin, mins: serviceById(state.service).mins });
+      }
       fallbackSmsBook();
     }
   } catch {
@@ -522,6 +550,11 @@ fetch("config.json")
   .then(r => r.json())
   .then(cfg => {
     CONFIG = cfg;
+    // taken slots + time off — the picker grays them out (fail-open if unavailable)
+    fetch("/api/availability").then(r => r.json()).then(a => {
+      AVAIL = a;
+      renderDates();
+    }).catch(() => {});
     renderServices();
     renderInfo();
     renderStats();
