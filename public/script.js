@@ -470,6 +470,32 @@ function observeReveals() {
 $("#year").textContent = new Date().getFullYear();
 
 
+/* ---------- intro video → logo handoff ---------- */
+// the video sits in the logo's exact slot above a black veil; when it ends
+// both fade out together so the video blends seamlessly into the real logo.
+(function introHandoff() {
+  const veil = $("#intro-veil"), vid = $("#intro-video");
+  if (!veil || !vid) return;
+  const skip = sessionStorage.getItem("cafc_intro") ||
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (skip) { veil.remove(); vid.remove(); return; }
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    veil.classList.add("out");
+    vid.classList.add("out");
+    sessionStorage.setItem("cafc_intro", "1");
+    setTimeout(() => { veil.remove(); vid.remove(); }, 900);
+  };
+  vid.playbackRate = 1.85;
+  vid.addEventListener("ended", finish);
+  vid.addEventListener("error", finish);
+  setTimeout(finish, 5000); // hard cap — never trap the visitor
+  vid.play().catch(finish);
+})();
+
+
 /* ---------- events ---------- */
 $("#btn-next").addEventListener("click", () => {
   if (state.step === 4) {
