@@ -937,6 +937,13 @@ a { color: inherit; }
 }
 .footer-tag { color: var(--red-bright); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin: 4px 0 22px; }
 .footer-small { color: var(--gray); font-size: 12px; }
+.footer-credit { margin-top: 10px; }
+.footer-credit a {
+  color: #d7b740;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-credit a:hover { color: #e6c75a; }
 
 /* ---------- toast ---------- */
 .toast {
