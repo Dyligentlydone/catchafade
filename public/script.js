@@ -176,21 +176,41 @@ function selectService(id) {
   state.service = id;
   $$("#service-picker .pick").forEach(b =>
     b.classList.toggle("is-selected", b.dataset.service === id));
+  // the strip's disabled state depends on the service — rebuild it, and
+  // drop a selected date that just became unavailable under this service
+  if (state.date) {
+    const day = new Date(state.date);
+    const svc = serviceById(id);
+    const stillFree = svc.request
+      ? !AVAIL.blocked.some(b => b.dateISO === dayISO(day) && b.timeMin == null)
+      : slotsForDay(day).some(s => !s.taken);
+    if (!stillFree) {
+      state.date = null;
+      $("#time-grid").innerHTML = `<p class="hint">Pick a day first.</p>`;
+    }
+  }
+  renderDates();
+  if (state.date) renderTimes(new Date(state.date));
 }
 
 
 /* ---------- booking: step 2 — dates & times ---------- */
 function renderDates() {
   const strip = $("#date-strip");
+  const svc = serviceById(state.service);
   const days = [];
   const d = new Date();
-  for (let i = 0; days.length < CONFIG.daysAhead && i < 40; i++) {
+  for (let i = 0; days.length < CONFIG.daysAhead && i < 45; i++) {
     const day = new Date(d.getFullYear(), d.getMonth(), d.getDate() + i);
     if (CONFIG.hours[day.getDay()]) days.push(day);
   }
   strip.innerHTML = days.map(day => {
     const key = day.toDateString();
-    const full = !slotsForDay(day).some(s => !s.taken);
+    const full = svc
+      ? (svc.request
+          ? AVAIL.blocked.some(b => b.dateISO === dayISO(day) && b.timeMin == null)
+          : !slotsForDay(day).some(s => !s.taken))
+      : false;
     return `<button type="button" class="date-btn ${state.date === key ? "is-selected" : ""}"
       data-date="${key}" ${full ? "disabled" : ""}>
       <span class="date-dow">${DOW[day.getDay()]}</span>

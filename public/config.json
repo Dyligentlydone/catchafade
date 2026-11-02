@@ -34,7 +34,7 @@
     "6": { "open": 10, "close": 18 }
   },
   "slotMinutes": 30,
-  "daysAhead": 14,
+  "daysAhead": 30,
   "minLeadMinutes": 60,
   "services": [
     { "id": "full", "name": "Full Service", "price": 50, "mins": 60, "tag": "Book ahead",
