@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 const BARBER_PHONE = process.env.BARBER_PHONE || CONFIG.phone;
 const PROD = process.env.NODE_ENV === "production";
 
-const stripe = process.env.STRIPE_SECRET_KEY
+let stripe = process.env.STRIPE_SECRET_KEY
   ? require("stripe")(process.env.STRIPE_SECRET_KEY)
   : null;
 
@@ -232,8 +232,13 @@ app.post("/api/booking/start", async (req, res) => {
     });
     res.json({ status: "checkout", url: session.url });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "booking failed — try again" });
+    // a Stripe problem (bad key, outage, whatever) must never kill a booking —
+    // record it and let the client fall back to texting Chris directly
+    console.error("stripe path failed, falling back to sms_only:", e.message);
+    pendings.delete(id);
+    bookings.set(id, booking);
+    saveBookings();
+    res.json({ status: "sms_only", bookingId: id });
   }
 });
 
@@ -440,6 +445,16 @@ app.post("/api/admin/client", adminAuth, (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Catch a Fade Chris — http://localhost:${PORT}`);
-  console.log(`  stripe: ${stripe ? "configured" : "NOT SET (503 on /api/booking)"}`);
+  console.log(`  stripe: ${stripe ? "configured" : "NOT SET (SMS-only mode)"}`);
   console.log(`  twilio: ${twilioReady ? "configured" : "NOT SET (codes logged to console)"}`);
+  // validate the key once — a bad key disables card-on-file rather than
+  // failing on every booking
+  if (stripe) {
+    stripe.customers.list({ limit: 1 })
+      .then(() => console.log("  stripe key: valid"))
+      .catch(e => {
+        console.error(`  stripe key INVALID (${e.message}) — running SMS-only`);
+        stripe = null;
+      });
+  }
 });
