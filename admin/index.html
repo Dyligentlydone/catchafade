@@ -81,6 +81,35 @@
       background:var(--panel); border:1px solid var(--line); border-radius:8px;
       padding:12px 14px; margin-bottom:8px; font-size:14px; }
     .block-row button { padding:6px 12px; font-size:11px; }
+    /* calendar */
+    .cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .cal-title { font-family:"Bebas Neue"; font-size:22px; letter-spacing:2px; }
+    .cal-head button { padding:8px 14px; font-size:15px; }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-dow { text-align:center; font-size:9px; letter-spacing:1px; color:var(--gray);
+               text-transform:uppercase; padding:4px 0; }
+    .cal-cell { min-height:58px; background:var(--panel); border:1px solid var(--line);
+                border-radius:6px; padding:4px; font-size:11px; cursor:pointer; overflow:hidden; }
+    .cal-cell.blank { background:transparent; border:none; cursor:default; }
+    .cal-cell.past { opacity:.45; }
+    .cal-cell.today { border-color:var(--red2); }
+    .cal-cell.off { background:repeating-linear-gradient(45deg,var(--panel),var(--panel) 5px,var(--panel2) 5px,var(--panel2) 10px); }
+    .cal-num { color:var(--dim); font-weight:700; font-size:10px; }
+    .cal-cell.today .cal-num { color:var(--red2); }
+    .appt { display:block; margin-top:3px; padding:2px 4px; border-radius:3px; font-size:9px;
+            font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .a-booked    { background:var(--panel2); color:var(--cream); border:1px solid var(--line); }
+    .a-confirmed { background:rgba(164,22,26,.3); color:#f0a0a0; }
+    .a-charged,.a-paid { background:rgba(60,160,60,.2); color:var(--green); }
+    .a-no_show   { background:rgba(211,31,38,.3); color:var(--red2); }
+    .a-refunded  { background:var(--panel2); color:var(--gray); }
+    .cal-more { display:block; margin-top:2px; font-size:9px; color:var(--gray); }
+    .cal-off-tag { display:block; margin-top:3px; font-size:8px; letter-spacing:1px;
+                   color:var(--gray); text-transform:uppercase; }
+    .cal-legend { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 4px; font-size:10px;
+                  color:var(--gray); }
+    .cal-legend i { display:inline-block; width:9px; height:9px; border-radius:2px;
+                    margin-right:4px; vertical-align:-1px; }
     #login { max-width:340px; margin:15vh auto 0; text-align:center; }
     #login input { width:100%; background:var(--panel2); border:1px solid var(--line);
       border-radius:8px; color:var(--cream); font-size:16px; padding:14px;
@@ -117,11 +146,28 @@
 
     <div class="tabs">
       <div class="tab on" data-tab="bookings">Bookings</div>
+      <div class="tab" data-tab="calendar">Calendar</div>
       <div class="tab" data-tab="clients">Clients</div>
       <div class="tab" data-tab="timeoff">Time off</div>
     </div>
 
     <div id="tab-bookings"><div id="list"></div></div>
+    <div id="tab-calendar" hidden>
+      <div class="cal-head">
+        <button id="cal-prev">‹</button>
+        <div class="cal-title" id="cal-title"></div>
+        <button id="cal-next">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <span><i style="background:#1b1b1e;border:1px solid var(--line)"></i>New</span>
+        <span><i style="background:rgba(164,22,26,.5)"></i>Confirmed</span>
+        <span><i style="background:rgba(60,160,60,.4)"></i>Done</span>
+        <span><i style="background:rgba(211,31,38,.5)"></i>No-show</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#141416,#141416 3px,#1b1b1e 3px,#1b1b1e 6px)"></i>Off</span>
+      </div>
+      <div id="cal-detail"></div>
+    </div>
     <div id="tab-clients" hidden><div id="client-list"></div></div>
     <div id="tab-timeoff" hidden>
       <div class="card">
@@ -174,8 +220,9 @@ document.addEventListener("click", e => {
 });
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
-  ["bookings","clients","timeoff"].forEach(n =>
+  ["bookings","calendar","clients","timeoff"].forEach(n =>
     $(`#tab-${n}`).hidden = n !== t.dataset.tab);
+  if (t.dataset.tab === "calendar") renderCal();
   if (t.dataset.tab === "clients") loadClients();
   if (t.dataset.tab === "timeoff") loadBlocks();
 }));
@@ -215,8 +262,11 @@ function card(b){
   </div>`;
 }
 
+let ALL_BK = [], BLOCKS = [];
+
 async function load(){
   const data = await api("/api/admin/bookings");
+  ALL_BK = data.bookings;
   feeText = data.noShowFee || feeText;
   $("#sub-line").textContent = data.stripe ? "Admin dashboard · Stripe connected"
                                           : "Admin dashboard · Stripe NOT connected";
@@ -231,6 +281,7 @@ async function load(){
     (up.map(card).join("") || `<div class="empty">No upcoming bookings.</div>`) +
     `<div class="sect">History (${done.length})</div>` +
     (done.map(card).join("") || `<div class="empty">Nothing yet.</div>`);
+  if (!$("#tab-calendar").hidden) renderCal();
 }
 
 window.charge = async id => {
@@ -270,6 +321,58 @@ window.setStatus = async (id, s) => {
   catch (e) { toast(e.message); }
 };
 
+/* ---------- calendar ---------- */
+let calCursor = new Date(); calCursor.setDate(1);
+let calSel = null;
+const isoOf = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const calBookings = iso => ALL_BK
+  .filter(b => b.dateISO === iso && b.status !== "cancelled")
+  .sort((a, b) => (a.timeMin ?? 9999) - (b.timeMin ?? 9999));
+
+async function renderCal(){
+  if (!BLOCKS.length && !calCursor._loaded) {
+    try { const d = await api("/api/admin/blocks"); BLOCKS = d.blocks; } catch {}
+    calCursor._loaded = true;
+  }
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  $("#cal-title").textContent =
+    calCursor.toLocaleString("en-US", { month: "long", year: "numeric" });
+  const today = isoOf(new Date());
+  let html = ["SUN","MON","TUE","WED","THU","FRI","SAT"]
+    .map(d => `<div class="cal-dow">${d}</div>`).join("");
+  for (let i = 0; i < new Date(y, m, 1).getDay(); i++)
+    html += `<div class="cal-cell blank"></div>`;
+  for (let d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) {
+    const day = new Date(y, m, d), iso = isoOf(day);
+    const appts = calBookings(iso);
+    const off = BLOCKS.find(b => b.dateISO === iso);
+    html += `<div class="cal-cell ${iso === today ? "today" : ""} ${iso < today ? "past" : ""} ${off ? "off" : ""}" data-iso="${iso}">
+      <span class="cal-num">${d}</span>
+      ${appts.slice(0, 2).map(b =>
+        `<span class="appt a-${b.status}">${b.timeMin != null ? fmtT(b.timeMin).replace(":00","") : "—"} ${esc(b.name.split(" ")[0])}</span>`).join("")}
+      ${appts.length > 2 ? `<span class="cal-more">+${appts.length - 2} more</span>` : ""}
+      ${off ? `<span class="cal-off-tag">off${off.label ? ` · ${esc(off.label)}` : ""}</span>` : ""}
+    </div>`;
+  }
+  $("#cal-grid").innerHTML = html;
+  document.querySelectorAll(".cal-cell:not(.blank)").forEach(c =>
+    c.addEventListener("click", () => { calSel = c.dataset.iso; renderCalDetail(); }));
+  renderCalDetail();
+}
+
+function renderCalDetail(){
+  const el = $("#cal-detail");
+  if (!calSel) { el.innerHTML = `<div class="empty">Tap a day to see its bookings.</div>`; return; }
+  const appts = calBookings(calSel);
+  const off = BLOCKS.find(b => b.dateISO === calSel);
+  const nice = new Date(calSel + "T12:00").toLocaleDateString("en-US",
+    { weekday: "long", month: "long", day: "numeric" });
+  el.innerHTML = `<div class="sect">${nice}${off ? ` — blocked off${off.label ? ` (${esc(off.label)})` : ""}` : ""}</div>` +
+    (appts.length ? appts.map(card).join("") : `<div class="empty">Open — nothing booked.</div>`);
+}
+$("#cal-prev").addEventListener("click", () => { calCursor.setMonth(calCursor.getMonth() - 1); renderCal(); });
+$("#cal-next").addEventListener("click", () => { calCursor.setMonth(calCursor.getMonth() + 1); renderCal(); });
+
 /* ---------- clients ---------- */
 async function loadClients(){
   const data = await api("/api/admin/clients");
@@ -308,6 +411,7 @@ window.saveNote = async phone => {
 })();
 async function loadBlocks(){
   const data = await api("/api/admin/blocks");
+  BLOCKS = data.blocks;
   $("#block-list").innerHTML = data.blocks.map(b => `
     <div class="block-row">
       <span>${esc(b.dateISO)} · ${b.timeMin == null ? "All day" : `${fmtT(b.timeMin)}–${fmtT(b.timeMin+b.mins)}`}
