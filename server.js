@@ -359,6 +359,16 @@ app.post("/api/admin/status", adminAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// hard-delete a booking — for test entries and mistakes (decline cancels,
+// delete erases entirely: history, client profile, stats)
+app.delete("/api/admin/bookings/:id", adminAuth, (req, res) => {
+  if (!bookings.delete(req.params.id)) {
+    return res.status(404).json({ error: "booking not found" });
+  }
+  saveBookings();
+  res.json({ ok: true });
+});
+
 // paid outside Stripe (cash, Zelle, etc.) — counts toward revenue, nothing to refund
 app.post("/api/admin/paid", adminAuth, (req, res) => {
   const { bookingId, amount } = req.body || {};

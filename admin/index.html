@@ -247,7 +247,10 @@ function card(b){
     </div>
     ${b.notes ? `<div class="bk-notes">"${esc(b.notes)}"</div>` : ""}
     ${done
-      ? (b.status === "charged" ? `<div class="actions"><button onclick="refund('${b.id}')">Refund</button></div>` : "")
+      ? `<div class="actions">
+          ${b.status === "charged" ? `<button onclick="refund('${b.id}')">Refund</button>` : ""}
+          <button onclick="del('${b.id}')">Delete</button>
+        </div>`
       : `
     <div class="row">
       <input type="number" min="1" step="1" value="${b.svc.price}" id="amt-${b.id}" />
@@ -258,6 +261,7 @@ function card(b){
       ${b.status === "booked" ? `<button onclick="setStatus('${b.id}','confirmed')">Confirm</button>` : ""}
       <button onclick="noShow('${b.id}')">No-show ${feeText}</button>
       <button onclick="setStatus('${b.id}','cancelled')">Decline</button>
+      <button onclick="del('${b.id}')">Delete</button>
     </div>`}
   </div>`;
 }
@@ -315,6 +319,12 @@ window.noShow = async id => {
       await api("/api/admin/status", { bookingId:id, status:"no_show" }); load();
     }
   }
+};
+window.del = async id => {
+  if (!confirm("Permanently delete this booking? Can't be undone.")) return;
+  try { await api(`/api/admin/bookings/${id}`, null, "DELETE");
+        toast("Deleted"); load(); }
+  catch (e) { toast(e.message); }
 };
 window.setStatus = async (id, s) => {
   try { await api("/api/admin/status", { bookingId:id, status:s }); load(); }
