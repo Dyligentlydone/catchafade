@@ -285,13 +285,14 @@ function bookingMessage() {
   const svc = serviceById(state.service);
   const p = bookingPayload();
   return [
-    `Booking request — ${CONFIG.shopName}`,
-    `Name: ${p.name}`,
-    `Phone: ${p.phone}`,
-    `Service: ${svc.name} ($${svc.price}${svc.priceNote || ""}, ~${svc.mins} min)`,
-    `When: ${p.date} at ${p.time}`,
-    p.address ? `Address: ${p.address}` : null,
-    p.notes ? `Notes: ${p.notes}` : null,
+    `NEW BOOKING — ${CONFIG.shopName}`,
+    ``,
+    `WHEN:    ${p.date} · ${p.time}`,
+    `SERVICE: ${svc.name} · $${svc.price}${svc.priceNote || ""}`,
+    `CLIENT:  ${p.name}`,
+    `PHONE:   ${p.phone}`,
+    p.notes ? `NOTES:   ${p.notes}` : null,
+    p.address ? `ADDR:    ${p.address}` : null,
   ].filter(Boolean).join("\n");
 }
 
