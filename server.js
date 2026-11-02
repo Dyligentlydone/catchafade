@@ -443,7 +443,7 @@ app.post("/api/admin/client", adminAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Catch a Fade Chris — http://localhost:${PORT}`);
   console.log(`  stripe: ${stripe ? "configured" : "NOT SET (SMS-only mode)"}`);
   console.log(`  twilio: ${twilioReady ? "configured" : "NOT SET (codes logged to console)"}`);
@@ -458,3 +458,8 @@ app.listen(PORT, () => {
       });
   }
 });
+
+// Railway sends SIGTERM when a new deploy replaces this container — close
+// cleanly so in-flight requests finish and npm doesn't log it as a crash
+["SIGTERM", "SIGINT"].forEach(sig =>
+  process.on(sig, () => server.close(() => process.exit(0))));
