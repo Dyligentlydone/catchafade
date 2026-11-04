@@ -491,22 +491,29 @@ $("#year").textContent = new Date().getFullYear();
 
 
 /* ---------- intro video → logo handoff ---------- */
-// the video sits in the logo's exact slot above a black veil; when it ends
-// both fade out together so the video blends seamlessly into the real logo.
+// the video plays small below the tagline while the hero logo holds back;
+// on end it fades and collapses upward as the logo scales in — one shot.
 (function introHandoff() {
-  const veil = $("#intro-veil"), vid = $("#intro-video");
-  if (!veil || !vid) return;
+  const vid = $("#intro-video");
+  if (!vid) return;
   const skip = sessionStorage.getItem("cafc_intro") ||
     matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (skip) { veil.remove(); vid.remove(); return; }
+  if (skip) { vid.remove(); return; }
   let done = false;
   const finish = () => {
     if (done) return;
     done = true;
-    veil.classList.add("out");
     vid.classList.add("out");
     sessionStorage.setItem("cafc_intro", "1");
-    setTimeout(() => { veil.remove(); vid.remove(); }, 900);
+    // collapse its slot so the buttons rise smoothly into place
+    vid.style.height = vid.offsetHeight + "px";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      vid.style.transition =
+        "opacity .5s ease, transform .5s ease, height .55s ease .15s, margin .55s ease .15s";
+      vid.style.height = "0";
+      vid.style.marginTop = "0";
+    }));
+    setTimeout(() => vid.remove(), 800);
   };
   vid.playbackRate = 1.85;
   vid.addEventListener("ended", finish);
