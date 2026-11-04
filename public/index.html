@@ -46,6 +46,7 @@
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
+  <div id="intro-veil" aria-hidden="true"></div>
 
   <!-- NAV -->
   <header class="nav" id="nav">
@@ -72,7 +73,11 @@
           <span class="pole-body"><span class="pole-stripes"></span></span>
           <span class="pole-cap bottom"></span>
         </div>
-        <img src="IMG_2543.JPEG" alt="Catch a Fade Chris" class="hero-logo" />
+        <div class="hero-logo-slot">
+          <img src="IMG_2543.JPEG" alt="Catch a Fade Chris" class="hero-logo" />
+          <video id="intro-video" class="intro-video" src="intro.mp4"
+                 muted playsinline autoplay preload="auto"></video>
+        </div>
         <div class="hero-pole" aria-hidden="true">
           <span class="pole-cap top"></span>
           <span class="pole-body"><span class="pole-stripes"></span></span>
@@ -82,8 +87,6 @@
       <p class="hero-eyebrow">Home-based &amp; mobile barber · Colton, CA</p>
       <h1 class="hero-title">Catch a Fade.</h1>
       <p class="hero-tagline">&ldquo;The cut that gets you butt.<br />The fade that gets you laid.&rdquo;</p>
-      <video id="intro-video" class="intro-video" src="intro.mp4"
-             muted playsinline autoplay preload="auto"></video>
       <div class="hero-actions">
         <a href="#book" class="btn btn-red">Book Now</a>
         <a href="#work" class="btn btn-ghost">See the Work</a>
