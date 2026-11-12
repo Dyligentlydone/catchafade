@@ -359,6 +359,26 @@ app.post("/api/admin/status", adminAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// text blast to every customer who has ever booked — replies should go to
+// Chris's real number, so the message must contain it (this sends FROM the
+// Twilio number; replies to it go nowhere without an inbound webhook)
+app.post("/api/admin/blast", adminAuth, async (req, res) => {
+  const { message } = req.body || {};
+  const body = (message || "").trim();
+  if (!body) return res.status(400).json({ error: "write a message first" });
+  if (!twilioReady) return res.status(503).json({ error: "twilio not configured" });
+  const phones = [...new Set([...bookings.values()].map(b => b.phone))];
+  let sent = 0;
+  const failed = [];
+  for (const p of phones) {
+    try { await sendSMS(p, body); sent++; }
+    catch (e) { failed.push({ phone: p, error: e.message }); }
+    await new Promise(r => setTimeout(r, 1100)); // ~1/sec — carrier-safe pace
+  }
+  console.log(`[blast] ${sent}/${phones.length} sent${failed.length ? ` · failed: ${failed.map(f => f.phone).join(", ")}` : ""}`);
+  res.json({ ok: true, sent, total: phones.length, failed: failed.length });
+});
+
 // hard-delete a booking — for test entries and mistakes (decline cancels,
 // delete erases entirely: history, client profile, stats)
 app.delete("/api/admin/bookings/:id", adminAuth, (req, res) => {
