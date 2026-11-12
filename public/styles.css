@@ -315,6 +315,37 @@ a { color: inherit; }
 }
 .chip-sm { font-size: 11px; padding: 5px 12px; }
 
+/* ---------- promo banner ---------- */
+.promo-banner {
+  background: linear-gradient(90deg, #6e0f12, var(--red) 40%, var(--red) 60%, #6e0f12);
+  border-top: 1px solid rgba(211,31,38,0.6);
+  border-bottom: 1px solid rgba(211,31,38,0.6);
+}
+.promo-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 13px 20px;
+  text-decoration: none;
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: clamp(17px, 3.4vw, 22px);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+.promo-cta {
+  font-size: 0.62em;
+  letter-spacing: 1.5px;
+  padding: 5px 13px;
+  border: 1px solid rgba(239,231,211,0.5);
+  border-radius: 999px;
+  color: var(--cream);
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.promo-inner:hover .promo-cta { background: var(--cream); color: var(--red); }
+
 /* ---------- stats bar ---------- */
 .stats-bar {
   display: flex;

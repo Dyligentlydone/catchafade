@@ -187,6 +187,7 @@ app.post("/api/booking/start", async (req, res) => {
   const booking = {
     id, name, phone: phoneE164, svc, date, time, notes, address,
     dateISO: dateISO || null, timeMin: timeMin ?? null,
+    firstTimer: ![...bookings.values()].some(b => b.phone === phoneE164),
     status: "booked", createdAt: new Date().toISOString(),
   };
 
@@ -298,7 +299,7 @@ app.get("/api/admin/bookings", adminAuth, (req, res) => {
   const bookedValue = [...bookings.values()]
     .filter(b => (b.status === "booked" || b.status === "confirmed") &&
                  (!b.dateISO || b.dateISO >= todayISO))
-    .reduce((s, b) => s + b.svc.price, 0);
+    .reduce((s, b) => s + (b.firstTimer ? Math.ceil(b.svc.price / 2) : b.svc.price), 0);
   res.json({
     bookings: [...bookings.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     noShowFee: CONFIG.noShowPolicy.fee,

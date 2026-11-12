@@ -602,6 +602,10 @@ fetch("config.json")
       AVAIL = a;
       renderDates();
     }).catch(() => {});
+    if (cfg.promo?.text) {
+      $("#promo-text").textContent = cfg.promo.text;
+      $("#promo-banner").hidden = false;
+    }
     renderServices();
     renderInfo();
     renderStats();

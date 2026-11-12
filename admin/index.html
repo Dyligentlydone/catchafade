@@ -186,6 +186,7 @@
           <button data-tpl="opening">Opening today</button>
           <button data-tpl="tomorrow">Opening tomorrow</button>
           <button data-tpl="slow">Slow week</button>
+          <button data-tpl="first">First-timer 50% off</button>
         </div>
         <textarea id="blast-msg" placeholder="Type the blast…"></textarea>
         <div class="blast-meta">
@@ -268,7 +269,7 @@ function card(b){
       <span class="badge b-${b.status}">${STATUS_LABEL[b.status]}${paidCents?` · $${(paidCents/100).toFixed(0)}`:""}</span>
     </div>
     <div class="bk-meta">
-      ${esc(b.svc.name)} — $${b.svc.price}${b.svc.priceNote||""}<br>
+      ${esc(b.svc.name)} — $${b.svc.price}${b.svc.priceNote||""}${b.firstTimer ? ` <b style="color:#d7b73f">1ST −50%</b>` : ""}<br>
       ${esc(b.date)} · ${esc(b.time)}<br>
       <a href="sms:${esc(b.phone)}">${esc(b.phone)}</a>
       ${b.address ? `<br>${esc(b.address)}` : ""}
@@ -281,7 +282,7 @@ function card(b){
         </div>`
       : `
     <div class="row">
-      <input type="number" min="1" step="1" value="${b.svc.price}" id="amt-${b.id}" />
+      <input type="number" min="1" step="1" value="${b.firstTimer ? Math.ceil(b.svc.price / 2) : b.svc.price}" id="amt-${b.id}" />
       <button class="btn-red" onclick="charge('${b.id}')">Charge</button>
       <button onclick="paid('${b.id}')">Paid</button>
     </div>
@@ -418,6 +419,7 @@ const TEMPLATES = {
   opening: () => `Chris has an opening TODAY — first come first served. Text or call ${SHOP_PHONE} to grab it. Reply STOP to opt out.`,
   tomorrow: () => `Chris has an opening TOMORROW — first come first served. Text or call ${SHOP_PHONE} to grab it. Reply STOP to opt out.`,
   slow: () => `Few open spots this week — lock in your cut before they go. Text or call ${SHOP_PHONE}. Reply STOP to opt out.`,
+  first: () => `Know someone who needs a barber? First-time clients get 50% off right now — send them my way: text or call ${SHOP_PHONE}. Reply STOP to opt out.`,
 };
 function loadPromo(){
   const n = new Set(ALL_BK.map(b => b.phone)).size;

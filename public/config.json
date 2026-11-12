@@ -46,5 +46,6 @@
     { "id": "housecall", "name": "Housecall", "price": 100, "mins": 60, "tag": "By request", "request": true, "needsAddress": true, "priceNote": " + gas",
       "desc": "Chris pulls up to you — $100 per cut plus gas." }
   ],
-  "noShowPolicy": { "fee": "$25", "window": "4 hours" }
+  "noShowPolicy": { "fee": "$25", "window": "4 hours" },
+  "promo": { "text": "First cut 50% off — new clients only", "firstTimerDiscount": 0.5 }
 }
